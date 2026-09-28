@@ -1,0 +1,14 @@
+# macOS
+.DS_Store
+
+# editor / local tool settings
+.claude/
+.vscode/
+.idea/
+
+# logs and dependencies (none today, but just in case)
+*.log
+node_modules/
+
+# the one-off art-style sampler from before the game existed
+game-looks.html
