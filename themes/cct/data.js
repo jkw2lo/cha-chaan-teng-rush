@@ -5,7 +5,7 @@ export const INGREDIENTS = {
   tea:    { name: 'Tea leaves',      zh: '茶葉', glyph: '茶', pack: 20, cost: 40, delivery: 45, color: '#6b4a2f' },
   milk:   { name: 'Evaporated milk', zh: '淡奶', glyph: '奶', pack: 12, cost: 36, delivery: 45, color: '#2b2b2b' },
   ice:    { name: 'Ice',             zh: '冰',   glyph: '冰', pack: 20, cost: 20, delivery: 30, color: '#5aa7c9' },
-  bun:    { name: 'Pineapple buns',  zh: '菠蘿包', jp: 'bo1 lo4 baau1', m: '個', glyph: '包', pack: 12, cost: 48, delivery: 60, color: '#d9952e' },
+  bun:    { name: 'Pineapple buns',  zh: '菠蘿包', glyph: '包', pack: 12, cost: 48, delivery: 60, color: '#d9952e' },
   butter: { name: 'Butter slices',   zh: '牛油', glyph: '油', pack: 16, cost: 32, delivery: 40, color: '#e2b93b' },
   bread:     { name: 'Sliced bread',   zh: '方包', glyph: '方', pack: 20, cost: 30, delivery: 50, color: '#c49a5c' },
   condensed: { name: 'Condensed milk', zh: '煉奶', glyph: '煉', pack: 20, cost: 30, delivery: 45, color: '#b89a52' },
@@ -27,7 +27,7 @@ export const INGREDIENTS = {
 export const MENU = {
   hotTea:    { name: 'Hot milk tea',              zh: '熱奶茶', jp: 'jit6 naai5 caa4', m: '杯', price: 18, recipe: { tea: 1, milk: 1 },         cook: 5, fresh: 50, weight: 3 },
   icedTea:   { name: 'Iced milk tea',             zh: '凍奶茶', jp: 'dung3 naai5 caa4', m: '杯', price: 20, recipe: { tea: 1, milk: 1, ice: 1 }, cook: 6, fresh: 40, weight: 3 },
-  bun:       { name: 'Pineapple bun',             zh: '菠蘿包', price: 12, recipe: { bun: 1 },                  cook: 4, fresh: 90, weight: 2 },
+  bun:       { name: 'Pineapple bun',             zh: '菠蘿包', jp: 'bo1 lo4 baau1', m: '個', price: 12, recipe: { bun: 1 },                  cook: 4, fresh: 90, weight: 2 },
   butterBun: { name: 'Pineapple bun with butter', zh: '菠蘿油', jp: 'bo1 lo4 jau4', m: '個', price: 16, recipe: { bun: 1, butter: 1 },       cook: 6, fresh: 60, weight: 2 },
   condensedToast: { name: 'Condensed milk toast', zh: '奶油多', jp: 'naai5 jau4 do1', m: '份', price: 16, recipe: { bread: 1, butter: 1, condensed: 1 }, cook: 5, fresh: 60, weight: 2, level: 2 },
   frenchToast:    { name: 'French toast',         zh: '西多士', jp: 'sai1 do1 si2', m: '份', price: 26, recipe: { bread: 2, egg: 1, butter: 1, syrup: 1 }, cook: 8, fresh: 50, weight: 2, level: 3 },

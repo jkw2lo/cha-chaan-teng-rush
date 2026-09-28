@@ -10,7 +10,9 @@ export const WALK_SPEED = 3.2;           // cook, cells per second
 export const CUSTOMER_SPEED = 1.7;
 export const WAITER_SPEED = 3.6;
 export const WALKOUT_PENALTY = 2.5;        // popularity lost when a customer gives up
-export const SELL_BACK = 0.5;            // refund when selling furniture or appliances
+export const SELL_BACK = 0.5;
+// Learning mode: a dish counts as known after this many servings; tickets you fill by reading alone tip a little more.
+export const KNOWN_AFTER = 6, READING_BONUS = .15;            // refund when selling furniture or appliances
 
 // The kitchen can be knocked through too, once you reach the level for it.
 export const KITCHEN_SIZES = [

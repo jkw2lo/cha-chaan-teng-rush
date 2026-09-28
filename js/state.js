@@ -17,6 +17,8 @@ export function newGame(){
     diningSize: 0,
     kitchenSize: 0,
     relaxed: false,
+    learning: false,
+    learned: {},
     stars: 0,
     kitchen: THEME.data.LAYOUT.kitchen.map(k => ({ ...k })),
     dining: {
@@ -44,7 +46,7 @@ export function load(){
     const S = JSON.parse(raw);
     if (S.version !== 1) return null;
     syncIds(S);
-    S.stars ??= 0; S.kitchenSize ??= 0; S.relaxed ??= false;
+    S.stars ??= 0; S.kitchenSize ??= 0; S.relaxed ??= false; S.learning ??= false; S.learned ??= {};
     for (const k of Object.keys(INGREDIENTS)) S.stock[k] ??= 0;   // ingredients added since this save
     return S;
   } catch (e) { return null; }

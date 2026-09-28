@@ -1,7 +1,7 @@
 // Draws one frame and returns what can be clicked.
 import { Iso, inPoly, shade } from './iso.js';
 import * as A from './art.js';
-import { APPLIANCES, DECOR, MENU, OPEN_HOUR } from './data.js';
+import { APPLIANCES, DECOR, MENU, OPEN_HOUR, THEME } from './data.js';
 import { DH, KW, KH, WALL_H, DIRS, worldW, diningW, doorCell, accessOf, seatReport, inKitchen, inDining, wallSide } from './world.js';
 import { clockHour, canMake } from './sim.js';
 
@@ -158,7 +158,7 @@ export function draw(ctx, cssW, cssH, dpr, S, R, ui, t){
   }
   if (R){
     if (R.avatar.phase === 'walk') drawPath(iso, R.avatar.path);
-    for (const h of heads) drawCustomerOverlay(iso, R, h.c, h.pos, t);
+    for (const h of heads) drawCustomerOverlay(iso, R, h.c, h.pos, t, S);
     for (const sp of R.sparks || []){
       const age = R.t - sp.t0, [a, b] = iso.P(sp.x, sp.y, 1.1);
       for (let i = 0; i < 10; i++){
@@ -277,7 +277,7 @@ function drawTray(iso, R, t){
   });
 }
 
-function drawCustomerOverlay(iso, R, cust, pos, t){
+function drawCustomerOverlay(iso, R, cust, pos, t, S){
   const c = iso.ctx, s = iso.s, [hx, hy, r] = pos;
   if (cust.state === 'waiting'){
     const o = R.orders.find(o => o.id === cust.orderId);
@@ -300,6 +300,21 @@ function drawCustomerOverlay(iso, R, cust, pos, t){
       if (n > 1){ c.fillStyle = '#231d18'; c.font = `800 ${Math.round(sz * .5)}px "Zilla Slab", Georgia, serif`; c.textAlign = 'left'; c.textBaseline = 'middle'; c.fillText('×' + n, cx - 2, y + h / 2 + 1); cx += sz * .55; }
     }
     c.fillStyle = 'rgba(35,29,24,.7)'; c.font = `700 ${Math.round(s * .2)}px "Zilla Slab", Georgia, serif`; c.textAlign = 'center'; c.fillText('#' + o.no, hx, y - 4);
+    // learning mode: for a few seconds after ordering, show what they actually said
+    if (S && S.learning && R.t - o.created < 5){
+      const ph = THEME.phrase(o.items), a = Math.min(1, (5 - (R.t - o.created)) * 2);
+      c.save(); c.globalAlpha = a;
+      c.font = `700 ${Math.round(s * .36)}px "Noto Serif TC", serif`;
+      const w1 = c.measureText(ph.zh).width;
+      c.font = `600 ${Math.round(s * .22)}px Karla, sans-serif`;
+      const w2 = c.measureText(ph.jp).width, bw = Math.max(w1, w2) + 24, bh = s * .84, bx = hx - bw / 2, by = y - 12 - bh;
+      c.fillStyle = '#1f2a26'; roundRect(c, bx, by, bw, bh, 10); c.fill();
+      c.beginPath(); c.moveTo(hx - 6, by + bh); c.lineTo(hx, by + bh + 7); c.lineTo(hx + 6, by + bh); c.fill();
+      c.textAlign = 'center'; c.textBaseline = 'middle';
+      c.fillStyle = '#fff3c4'; c.font = `700 ${Math.round(s * .36)}px "Noto Serif TC", serif`; c.fillText(ph.zh, hx, by + bh * .36);
+      c.fillStyle = '#9fd4c0'; c.font = `600 ${Math.round(s * .22)}px Karla, sans-serif`; c.fillText(ph.jp, hx, by + bh * .74);
+      c.restore();
+    }
   } else if (cust.state === 'leaving' && cust.angry){
     c.strokeStyle = '#ff5b4d'; c.lineWidth = 2.5;
     const y = hy - r * 2;

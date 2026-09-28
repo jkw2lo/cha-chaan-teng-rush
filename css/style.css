@@ -488,3 +488,27 @@ body.dragging, body.dragging *{cursor:grabbing !important; user-select:none}
 #inv.compact .inv .invnote:empty{display:block}
 #inv.compact .inv{grid-template-columns:28px 1fr auto; grid-template-areas:'chip nm nm' 'qty qty qo' 'bar bar bar' 'note note note'}
 #inv.compact .inv .invnote:empty{display:none}
+
+/* ================= learning mode ================= */
+.tourbtn.on{border-color:var(--gold); color:var(--gold)}
+.ti.learn{width:auto; min-width:60px; padding:3px 6px 4px}
+.ti.learn img{width:36px; height:36px}
+.ti.learn .lzh{font:900 17px/1.1 var(--han); color:var(--ink)}
+.ti.learn .ljp{font:600 10px var(--body); color:#2d6fa3; white-space:nowrap}
+.ti.learn:hover .ljp{opacity:1 !important}
+.ti.learn.known .lzh{font-size:22px; padding-top:6px}
+.ticket.reading{box-shadow:0 3px 8px rgba(0,0,0,.35), inset 0 0 0 2px var(--gold)}
+.learnopt{display:flex; gap:8px; align-items:flex-start; margin:0 0 14px; padding:10px 12px; background:#fff; border-radius:10px; box-shadow:inset 0 0 0 1px #e6dcc4; color:#4a4036; font-size:14px}
+.learnopt input{margin-top:3px}
+.games{margin:14px 0 0; font-size:13px; color:var(--muted)} .games a{color:var(--red); font-weight:700; margin-left:6px}
+.wtable{width:100%; border-collapse:collapse; margin-bottom:14px; font-size:14px; color:var(--ink)}
+.wtable th{text-align:left; font:700 11px var(--body); letter-spacing:.06em; text-transform:uppercase; color:var(--muted); padding:4px 8px}
+.wtable td{padding:6px 8px; border-top:1px dashed #e0d4b9; vertical-align:middle}
+.wtable .wzh{font:900 20px var(--han)} .wtable .wjp{color:#2d6fa3; font-weight:600}
+.wtable .wbar{width:150px} .wtable .wbar small{color:var(--muted); font-size:11px}
+.wtable tr.known .wzh::after{content:" ★"; color:var(--gold); font-size:14px}
+.ti.learn{display:grid; grid-template-rows:auto auto auto; justify-items:center; row-gap:1px}
+.ti.learn img{width:30px; height:30px}
+.ti.learn .lzh{font-size:16px}
+.ti.learn em{position:static; order:-1; justify-self:end; font-size:13px; line-height:1; margin-bottom:-4px}
+.ti.learn.known .lzh{font-size:20px; padding-top:2px}

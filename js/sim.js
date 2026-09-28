@@ -1,6 +1,6 @@
 // One day of trading. `S` is the saved game, `R` is today's run.
 import { DAY_SECONDS, OPEN_HOUR, CLOSE_HOUR, QUEUE_MAX, PASS_MAX, GOALS, salesTarget, TARGET_REWARD, GOAL_REWARD, WALK_SPEED, CUSTOMER_SPEED, WAITER_SPEED,
-         WALKOUT_PENALTY, MENU, MENU_ORDER, INGREDIENTS, APPLIANCES, DECOR, BASE_PACKS, itemLevel, levelOf, MAX_LEVEL } from './data.js';
+         WALKOUT_PENALTY, MENU, MENU_ORDER, INGREDIENTS, APPLIANCES, DECOR, BASE_PACKS, itemLevel, levelOf, MAX_LEVEL, KNOWN_AFTER, READING_BONUS } from './data.js';
 import { ambience, ambienceEffect } from './ambience.js';
 import { DIRS, HATCH, key, accessOf, bfs, inDining, inKitchen, kitchenBlocked, diningBlocked,
          doorCell, seatReport } from './world.js';
@@ -60,6 +60,9 @@ function floater(R, x, y, z, text, color){ R.floaters.push({ x, y, z, text, colo
 
 // ---------- levels ----------
 export const level = S => levelOf(S.stars || 0);
+// Learning mode: how well you know a dish, and whether a ticket reads as text only.
+export const known = (S, item) => ((S.learned || {})[item] || 0) >= KNOWN_AFTER;
+export const readingTicket = (S, o) => S.learning && Object.keys(o.items).every(it => known(S, it));
 export const maxed = S => level(S) >= MAX_LEVEL;
 // Relaxed days (unlocked at the top level): customers wait much longer and walkouts don't cost popularity.
 export const relaxed = S => maxed(S) && S.relaxed;
@@ -353,13 +356,18 @@ function serve(S, R, w){
   const subtotal = Object.entries(o.items).reduce((s, [it, n]) => s + MENU[it].price * n, 0);
   const r = clamp((o.deadline - o.sentAt) / (o.deadline - o.created), 0, 1);
   const tip = Math.round(subtotal * (.04 + .32 * r) * (.8 + S.popularity / 250) * ambienceEffect(ambience(S).total).tips);
-  S.money += subtotal + tip;
-  R.stats.revenue += subtotal; R.stats.tips += tip; R.stats.served++;
+  const reading = readingTicket(S, o);
+  const tipFinal = reading ? Math.round(tip * (1 + READING_BONUS) + 2) : tip;
+  S.learned ||= {};
+  for (const [it, n] of Object.entries(o.items)) S.learned[it] = (S.learned[it] || 0) + n;
+  if (reading) R.stats.read = (R.stats.read || 0) + 1;
+  S.money += subtotal + tipFinal;
+  R.stats.revenue += subtotal; R.stats.tips += tipFinal; R.stats.served++;
   if (r >= .5) R.stats.fast++;
   for (const [it, n] of Object.entries(o.items)) R.stats.sold[it] = (R.stats.sold[it] || 0) + n;
   S.popularity = Math.min(100, S.popularity + .15 + .45 * r);
   c.state = 'eating'; c.food = w.items; c.eatStart = R.t; c.eatUntil = R.t + 7 + 2.5 * w.items.length;
-  floater(R, c.x, c.y, 1.5, `+${fmtMoney(subtotal + tip)}`, r > .6 ? '#7fe08a' : '#ffd166');
+  floater(R, c.x, c.y, 1.5, `+${fmtMoney(subtotal + tipFinal)}${reading ? ' 讀' : ''}`, r > .6 ? '#7fe08a' : '#ffd166');
   R.sparks.push({ x: c.x, y: c.y, t0: R.t, seed: Math.random() * 6 });
   emit(R, 'cash');
 }

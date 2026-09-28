@@ -7,7 +7,7 @@ import * as A from './art.js';
 import * as UI from './ui.js';
 import * as Ed from './edit.js';
 import { showSplash } from './splash.js';
-import { sfx, unlockAudio, callOut, startSizzle, stopSizzle, cycleSound, soundMode, hasCantoneseVoice } from './sound.js';
+import { sfx, unlockAudio, callOut, speak, startSizzle, stopSizzle, cycleSound, soundMode, hasVoice } from './sound.js';
 import { buildSteps, runTour } from './tutorial.js';
 import { DH, KW, KH, syncKitchen } from './world.js';
 
@@ -165,8 +165,10 @@ $('drawer').addEventListener('click', e => {
 // ---------- modal buttons ----------
 $('modal').addEventListener('click', e => {
   const b = e.target.closest('button'); if (!b) return;
-  if (b.dataset.continue !== undefined){ UI.closeModal(); toPrep(); }
-  if (b.dataset.new !== undefined){ clearSave(); S = fresh(); syncKitchen(S); UI.closeModal(); toPrep(); UI.flash('New game: back to day 1 with starter stock and $' + S.money + '.', 'good'); setTimeout(startTour, 350); }
+  if (b.dataset.closewords !== undefined){ UI.closeModal(); return; }
+  const lt = $('learnTitle'); if (lt && (b.dataset.continue !== undefined || b.dataset.new !== undefined)) S.learning = lt.checked || (b.dataset.continue !== undefined && S.learning);
+  if (b.dataset.continue !== undefined){ UI.closeModal(); toPrep(); syncLearnBtn(); }
+  if (b.dataset.new !== undefined){ const learn = lt ? lt.checked : false; clearSave(); S = fresh(); S.learning = learn; syncKitchen(S); UI.closeModal(); toPrep(); syncLearnBtn(); UI.flash('New game: back to day 1 with starter stock and $' + S.money + '.', 'good'); setTimeout(startTour, 350); }
   if (b.dataset.next !== undefined) nextDay();
   if (b.dataset.restock !== undefined){ nextDay(); openDrawer(); }
   if (b.dataset.edit){ nextDay(); beginEdit(b.dataset.edit); }
@@ -456,11 +458,23 @@ function refreshDrawerTimers(){ /* static drawer: nothing time-based to refresh 
 let lastCash = null;
 function refreshEditorCash(){ if (lastCash !== S.money){ lastCash = S.money; refreshEditor(); } }
 
+// ---------- learning mode ----------
+let wordsFrom = null;
+function syncLearnBtn(){ $('learnBtn').textContent = S && S.learning ? '學 On' : '學 Off'; $('learnBtn').classList.toggle('on', !!(S && S.learning)); }
+function openWords(){
+  if (!S || phase === 'title' || phase === 'summary') return;
+  wordsFrom = phase;
+  UI.modal(UI.wordsHTML(S));
+  const bind = () => { $('learnToggle').onchange = e => { S.learning = e.target.checked; save(S); UI.modal(UI.wordsHTML(S)); bind(); syncLearnBtn(); }; };
+  bind();
+}
+$('learnBtn').onclick = openWords;
+
 // ---------- sound ----------
 const HOT = new Set(['wok', 'wokPro', 'fryer', 'fryerPro', 'griddle', 'griddlePro', 'noodlePot', 'noodlePotPro', 'satayPot', 'satayPotPro']);
 function playEvents(){
   for (const e of R.events.splice(0)){
-    if (e.type === 'order') callOut(e.data);
+    if (e.type === 'order') S.learning ? speak(THEME.phrase(e.data).zh, 1) : callOut(e.data);
     else if (e.type === 'out') sfx.bell();
     else if (sfx[e.type]) sfx[e.type]();
   }
@@ -470,7 +484,7 @@ function playEvents(){
 function syncSoundBtn(){
   const m = soundMode();
   $('soundBtn').textContent = m === 'all' ? '♪ On' : m === 'sfx' ? '♪ No voice' : '♪ Off';
-  $('soundBtn').title = m === 'all' ? (hasCantoneseVoice() ? 'Sound effects and Cantonese call-outs' : 'Sound effects (no Cantonese voice installed on this device)') : m === 'sfx' ? 'Sound effects only' : 'All sound off';
+  $('soundBtn').title = m === 'all' ? (hasVoice() ? `Sound effects and ${THEME.meta.lang.name} call-outs` : `Sound effects (no ${THEME.meta.lang.name} voice installed on this device)`) : m === 'sfx' ? 'Sound effects only' : 'All sound off';
 }
 $('soundBtn').onclick = () => { cycleSound(); syncSoundBtn(); };
 syncSoundBtn();

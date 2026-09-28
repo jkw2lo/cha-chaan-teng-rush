@@ -1,6 +1,6 @@
 // DOM panels around the canvas. Everything here reads state; main.js wires the buttons.
-import { MENU, MENU_ORDER, INGREDIENTS, APPLIANCES, APPLIANCE_SHOP, DECOR, STYLES, DINING_SIZES, DAY_SECONDS, QUEUE_MAX, PASS_MAX, AMBIENCE_MAX, TARGET_REWARD, GOAL_REWARD, LEVEL_STARS, itemLevel, KITCHEN_SIZES, MAX_LEVEL, THEME } from './data.js';
-import { level, itemReady, hasStation, visibleIngredients, clockHour, fmtClock, fmtMoney, dayProgress, capacity, shelves, packsRoom, incoming, passClaims, goalStatus, pickGoals } from './sim.js';
+import { MENU, MENU_ORDER, INGREDIENTS, APPLIANCES, APPLIANCE_SHOP, DECOR, STYLES, DINING_SIZES, DAY_SECONDS, QUEUE_MAX, PASS_MAX, AMBIENCE_MAX, TARGET_REWARD, GOAL_REWARD, LEVEL_STARS, itemLevel, KITCHEN_SIZES, MAX_LEVEL, THEME, KNOWN_AFTER } from './data.js';
+import { known, readingTicket, level, itemReady, hasStation, visibleIngredients, clockHour, fmtClock, fmtMoney, dayProgress, capacity, shelves, packsRoom, incoming, passClaims, goalStatus, pickGoals } from './sim.js';
 import { ambience, appealGain, ambienceEffect } from './ambience.js';
 import { iconURL } from './art.js';
 import { seatReport } from './world.js';
@@ -54,9 +54,16 @@ export function renderRail(S, R){
     const tone = o.sent ? 'sent' : frac > .5 ? 'ok' : frac > .25 ? 'warn' : 'late';
     const items = Object.entries(o.items).map(([it, n]) => {
       const ready = o.sent ? n : (claims.get(o.id) || {})[it] || 0;
-      return `<span class="ti ${!o.sent && ready >= n ? 'ready' : !o.sent && ready ? 'part' : ''}" title="${MENU[it].name}${ready && !o.sent ? `: ${ready} of ${n} on the pass` : ''}"><img src="${icon(it)}" alt="${MENU[it].name}"><em>${n > 1 ? '×' + n : ''}</em><small>${MENU[it].zh}</small></span>`;
+      const cls = !o.sent && ready >= n ? 'ready' : !o.sent && ready ? 'part' : '';
+      const tip = `${MENU[it].name}${ready && !o.sent ? `: ${ready} of ${n} on the pass` : ''}`;
+      if (S.learning){
+        // learning mode: the name leads; the picture goes once you know the dish, the romanisation fades as you learn it
+        const seen = (S.learned || {})[it] || 0, k = known(S, it), fade = Math.max(0, 1 - seen / KNOWN_AFTER);
+        return `<span class="ti learn ${k ? 'known' : ''} ${cls}" title="${tip}">${k ? '' : `<img src="${icon(it)}" alt="">`}<b class="lzh">${MENU[it].zh}</b><small class="ljp" style="opacity:${Math.max(.0, fade).toFixed(2)}">${MENU[it].jp || ''}</small><em>${n > 1 ? '×' + n : ''}</em></span>`;
+      }
+      return `<span class="ti ${cls}" title="${tip}"><img src="${icon(it)}" alt="${MENU[it].name}"><em>${n > 1 ? '×' + n : ''}</em><small>${MENU[it].zh}</small></span>`;
     }).join('');
-    return `<article class="ticket ${tone}">
+    return `<article class="ticket ${tone} ${readingTicket(S, o) ? 'reading' : ''}">
       <header><b>#${o.no}</b><span>${o.sent ? 'Out ✓' : secs(left)}</span></header>
       <div class="titems">${items}</div>
       <div class="tbar"><i style="width:${Math.round(frac * 100)}%"></i></div>
@@ -266,7 +273,9 @@ export function titleHTML(hasSave){
       <li>Hit the <b>daily targets</b> for stars. Stars raise your level, and new levels open up new dishes.</li>
       <li>Between days, spend your takings on <b>furniture, a bigger dining room and better appliances</b>.</li>
     </ul>
+    <label class="learnopt"><input type="checkbox" id="learnTitle"> <span><b>學 Learning mode</b>: tickets and customers use ${THEME.meta.lang.name} with ${THEME.meta.lang.romanisation}, which fades as you learn each dish. You can switch it any time.</span></label>
     <div class="btns">${hasSave ? '<button class="primary" data-continue>Continue</button><button data-new>New game</button>' : '<button class="primary" data-new>Open the shop</button>'}</div>
+    ${otherGames()}
   </div>`;
 }
 
@@ -292,5 +301,29 @@ export function summaryHTML(S, R){
     ${st.lost ? `<p class="muted">${st.lost} customer${st.lost > 1 ? 's' : ''} couldn't get a seat or found nothing on the menu. More seats means more customers at once.</p>` : ''}
     ${low.length ? `<p class="warnline">Running low: ${low.join(', ')}. Anything you order tonight arrives before opening.</p>` : ''}
     <div class="btns"><button data-restock>Order stock</button><button data-edit="kitchen">Rearrange kitchen</button><button data-edit="dining">Redecorate</button><button class="primary" data-next>On to day ${S.day + 1}</button></div>
+  </div>`;
+}
+
+// Links to the other restaurants built on this engine.
+const GAMES = [{ id: 'cct', name: 'Cha Chaan Teng Rush', zh: '茶餐廳' }, { id: 'dimsum', name: 'Dim Sum Rush', zh: '飲茶' }];
+function otherGames(){
+  const others = GAMES.filter(g => g.id !== (THEME && THEME.id));
+  return others.length ? `<p class="games">Also open: ${others.map(g => `<a href="?game=${g.id}">${g.zh} ${g.name} →</a>`).join(' ')}</p>` : '';
+}
+
+// The word list: every dish you can make, with how well you know it.
+export function wordsHTML(S){
+  const rows = MENU_ORDER.filter(m => itemReady(S, m)).map(m => {
+    const seen = (S.learned || {})[m] || 0, pct = Math.min(100, seen / KNOWN_AFTER * 100), k = known(S, m);
+    return `<tr class="${k ? 'known' : ''}"><td class="wzh">${MENU[m].zh}</td><td class="wjp">${MENU[m].jp || ''}</td><td>${MENU[m].name}</td>
+      <td class="wbar"><div class="bar"><i style="width:${pct}%"></i></div><small>${k ? 'Known ★' : `${seen} of ${KNOWN_AFTER} served`}</small></td></tr>`;
+  }).join('');
+  const sample = THEME.phrase({ [MENU_ORDER[0]]: 2 });
+  return `<div class="summary words">
+    <p class="eyebrow">學 Learning mode · ${THEME.meta.lang.name}</p>
+    <h2>Your words</h2>
+    <label class="learnopt"><input type="checkbox" id="learnToggle" ${S.learning ? 'checked' : ''}> <span><b>Learning mode ${S.learning ? 'on' : 'off'}</b>. Tickets show dish names in ${THEME.meta.lang.name} with ${THEME.meta.lang.romanisation}. Customers say their whole order (for example 「${sample.zh}」 <i>${sample.jp}</i>). After ${KNOWN_AFTER} servings a dish is known: its picture drops off the ticket, and tickets you fill by reading alone tip ${Math.round(.15 * 100)}% more.</span></label>
+    <table class="wtable"><thead><tr><th>Dish</th><th>${THEME.meta.lang.romanisation}</th><th>English</th><th>Progress</th></tr></thead><tbody>${rows}</tbody></table>
+    <div class="btns"><button class="primary" data-closewords>Back to the shop</button></div>
   </div>`;
 }
