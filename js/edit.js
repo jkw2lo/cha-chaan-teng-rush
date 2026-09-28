@@ -1,6 +1,6 @@
 // Redecorating the dining room and rearranging the kitchen. The game is paused while editing.
-import { DECOR, APPLIANCES, DINING_SIZES, SELL_BACK } from './data.js';
-import { KW, DH, KH, WALL_H, DIR_ORDER, inKitchen, accessOf, kitchenProblem, diningProblem, faceTable, rotateDir, diningW } from './world.js';
+import { DECOR, APPLIANCES, DINING_SIZES, KITCHEN_SIZES, SELL_BACK, levelOf } from './data.js';
+import { KW, DH, KH, WALL_H, DIR_ORDER, syncKitchen, inKitchen, accessOf, kitchenProblem, diningProblem, faceTable, rotateDir, diningW } from './world.js';
 import { newId } from './state.js';
 
 export function startEdit(ui, room){
@@ -15,6 +15,8 @@ export const findItem = find;
 export function beginBuy(S, ui, type){
   const E = ui.edit;
   const price = E.room === 'kitchen' ? APPLIANCES[type].price : DECOR[type].price;
+  const need = E.room === 'kitchen' ? 0 : DECOR[type].level || 0;
+  if (need > levelOf(S.stars || 0)) return `That opens up at level ${need}.`;
   if (price > S.money) return `You need ${price - Math.floor(S.money)} more dollars for that.`;
   E.moving = null; E.selected = null;
   E.ghostItem = { id: null, type, dir: E.room === 'kitchen' ? 'S' : (DECOR[type].kind === 'seat' ? 'E' : 'S'), x: 0, y: 0 };
@@ -131,5 +133,15 @@ export function expand(S){
   if (!next) return 'The dining room is as big as it gets.';
   if (next.price > S.money) return `You need ${next.price - Math.floor(S.money)} more dollars to expand.`;
   S.money -= next.price; S.diningSize++;
+  return null;
+}
+
+export function expandKitchen(S){
+  const next = KITCHEN_SIZES[(S.kitchenSize || 0) + 1];
+  if (!next) return 'The kitchen is as big as it gets.';
+  if (levelOf(S.stars || 0) < next.level) return `Expanding the kitchen opens up at level ${next.level}.`;
+  if (next.price > S.money) return `You need ${next.price - Math.floor(S.money)} more dollars to expand.`;
+  S.money -= next.price; S.kitchenSize = (S.kitchenSize || 0) + 1;
+  syncKitchen(S);
   return null;
 }

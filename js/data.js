@@ -8,8 +8,15 @@ export const PASS_MAX = 5;               // the pass holds this many finished it
 export const WALK_SPEED = 3.2;           // cook, cells per second
 export const CUSTOMER_SPEED = 1.7;
 export const WAITER_SPEED = 3.6;
-export const WALKOUT_PENALTY = 4;        // popularity lost when a customer gives up
+export const WALKOUT_PENALTY = 2.5;        // popularity lost when a customer gives up
 export const SELL_BACK = 0.5;            // refund when selling furniture or appliances
+
+// The kitchen can be knocked through too, once you reach the level for it.
+export const KITCHEN_SIZES = [
+  { w: 8,  price: 0,    level: 1, name: 'Galley kitchen',        zh: '細廚房' },
+  { w: 10, price: 3500, level: 5, name: 'Knock into the store room', zh: '打通貨倉' },
+  { w: 12, price: 8000, level: 8, name: 'Full back-of-house',    zh: '大廚房' },
+];
 
 export const DINING_SIZES = [
   { w: 8,  price: 0,    name: 'Shopfront',               zh: '細舖' },
@@ -28,6 +35,15 @@ export const INGREDIENTS = {
   condensed: { name: 'Condensed milk', zh: '煉奶', glyph: '煉', pack: 20, cost: 30, delivery: 45, color: '#b89a52' },
   egg:       { name: 'Eggs',           zh: '雞蛋', glyph: '蛋', pack: 12, cost: 24, delivery: 40, color: '#d9a441' },
   syrup:     { name: 'Golden syrup',   zh: '糖漿', glyph: '糖', pack: 20, cost: 30, delivery: 45, color: '#a8641c' },
+  noodles:   { name: 'Instant noodles', zh: '公仔麵', glyph: '麵', pack: 20, cost: 40, delivery: 45, color: '#c99a2e' },
+  luncheon:  { name: 'Luncheon meat',  zh: '午餐肉', glyph: '午', pack: 12, cost: 48, delivery: 50, color: '#c4625a' },
+  lemon:     { name: 'Lemons',         zh: '檸檬', glyph: '檸', pack: 20, cost: 30, delivery: 40, color: '#c9a91c' },
+  coffee:    { name: 'Coffee',         zh: '咖啡', glyph: '啡', pack: 20, cost: 50, delivery: 45, color: '#5a3a24' },
+  beef:      { name: 'Beef',           zh: '牛肉', glyph: '牛', pack: 12, cost: 72, delivery: 60, color: '#9e3b33' },
+  sauce:     { name: 'Satay & soy',    zh: '醬料', glyph: '醬', pack: 20, cost: 30, delivery: 40, color: '#6b3a1f' },
+  porkchop:  { name: 'Pork chops',     zh: '豬扒', glyph: '扒', pack: 12, cost: 60, delivery: 55, color: '#a0622e' },
+  pastry:    { name: 'Tart pastry',    zh: '酥皮', glyph: '酥', pack: 20, cost: 40, delivery: 50, color: '#c29a52' },
+  riceNoodle:{ name: 'Rice noodles',   zh: '河粉', glyph: '河', pack: 16, cost: 40, delivery: 50, color: '#a89878' },
 };
 
 // cook = seconds at a basic station; fresh = seconds it can sit on the pass before it's wasted
@@ -39,14 +55,23 @@ export const MENU = {
   butterBun: { name: 'Pineapple bun with butter', zh: '菠蘿油', price: 16, recipe: { bun: 1, butter: 1 },       cook: 6, fresh: 60, weight: 2 },
   condensedToast: { name: 'Condensed milk toast', zh: '奶油多', price: 16, recipe: { bread: 1, butter: 1, condensed: 1 }, cook: 5, fresh: 60, weight: 2, level: 2 },
   frenchToast:    { name: 'French toast',         zh: '西多士', price: 26, recipe: { bread: 2, egg: 1, butter: 1, syrup: 1 }, cook: 8, fresh: 50, weight: 2, level: 3 },
+  noodleSpam:  { name: 'Luncheon meat & egg noodles', zh: '餐蛋麵', price: 38, recipe: { noodles: 1, luncheon: 1, egg: 1 },       cook: 9,  fresh: 45, weight: 2, level: 4 },
+  lemonTea:    { name: 'Iced lemon tea',       zh: '凍檸茶', price: 22, recipe: { tea: 1, lemon: 1, ice: 1, syrup: 1 },       cook: 6,  fresh: 40, weight: 3, level: 5 },
+  yuenyeung:   { name: 'Yuenyeung (coffee & tea)', zh: '鴛鴦', price: 22, recipe: { tea: 1, milk: 1, coffee: 1 },          cook: 6,  fresh: 50, weight: 2, level: 6 },
+  satayBeef:   { name: 'Satay beef noodles',   zh: '沙嗲牛麵', price: 42, recipe: { noodles: 1, beef: 1, sauce: 1 },        cook: 10, fresh: 45, weight: 2, level: 7 },
+  porkchopBun: { name: 'Pork chop bun',        zh: '豬扒包', price: 36, recipe: { porkchop: 1, bun: 1 },                   cook: 9,  fresh: 55, weight: 2, level: 8 },
+  eggTart:     { name: 'Egg tart',             zh: '蛋撻',   price: 14, recipe: { egg: 1, pastry: 1 },                     cook: 7,  fresh: 80, weight: 3, level: 9 },
+  beefChowFun: { name: 'Beef chow fun',        zh: '乾炒牛河', price: 58, recipe: { riceNoodle: 1, beef: 1, sauce: 1 },     cook: 12, fresh: 40, weight: 2, level: 10 },
 };
-export const MENU_ORDER = ['hotTea', 'icedTea', 'bun', 'butterBun', 'condensedToast', 'frenchToast'];
+export const MENU_ORDER = ['hotTea', 'icedTea', 'bun', 'butterBun', 'condensedToast', 'frenchToast',
+  'noodleSpam', 'lemonTea', 'yuenyeung', 'satayBeef', 'porkchopBun', 'eggTart', 'beefChowFun'];
 export const itemLevel = item => MENU[item].level || 1;
 
 // Restaurant level comes from the stars you earn hitting daily targets (up to 3 a day).
 // Reaching a level opens up new menu items: their station appears in the kitchen shop
 // and their ingredients in the restock list.
-export const LEVEL_STARS = [0, 3, 7, 12, 18, 25];      // total stars needed for level 1, 2, 3...
+export const LEVEL_STARS = [0, 3, 7, 12, 17, 23, 29, 36, 43, 50];   // total stars needed for level 1..10
+export const MAX_LEVEL = LEVEL_STARS.length;
 export const levelOf = stars => LEVEL_STARS.filter(n => stars >= n).length;
 
 // Kitchen appliances. `speed` multiplies cook time (lower is faster).
@@ -63,10 +88,25 @@ export const APPLIANCES = {
   toasterPro:   { name: 'Conveyor toaster',     zh: '奶油多', makes: 'condensedToast', speed: .6,  price: 700, color: '#5d656c', pro: true },
   fryer:        { name: 'French toast pan',     zh: '西多士', makes: 'frenchToast',    speed: 1,   price: 450, color: '#8a4a2f' },
   fryerPro:     { name: 'Deep fryer',           zh: '西多士', makes: 'frenchToast',    speed: .6,  price: 850, color: '#6a3520', pro: true },
+  noodlePot:    { name: 'Noodle pot',           zh: '餐蛋麵', makes: 'noodleSpam',  speed: 1,  price: 400,  color: '#b8862e' },
+  noodlePotPro: { name: 'Twin noodle boiler',   zh: '餐蛋麵', makes: 'noodleSpam',  speed: .6, price: 800,  color: '#8f6620', pro: true },
+  lemonBar:     { name: 'Lemon tea bar',        zh: '凍檸茶', makes: 'lemonTea',    speed: 1,  price: 350,  color: '#b89a1c' },
+  lemonBarPro:  { name: 'Lemon press bar',      zh: '凍檸茶', makes: 'lemonTea',    speed: .6, price: 700,  color: '#8f7812', pro: true },
+  coffeeUrn:    { name: 'Coffee urn',           zh: '鴛鴦',   makes: 'yuenyeung',   speed: 1,  price: 380,  color: '#6b4a31' },
+  coffeeUrnPro: { name: 'Copper coffee urn',    zh: '鴛鴦',   makes: 'yuenyeung',   speed: .6, price: 750,  color: '#4f3422', pro: true },
+  satayPot:     { name: 'Satay pot',            zh: '沙嗲',   makes: 'satayBeef',   speed: 1,  price: 450,  color: '#9e4a26' },
+  satayPotPro:  { name: 'Satay double pot',     zh: '沙嗲',   makes: 'satayBeef',   speed: .6, price: 900,  color: '#7a3518', pro: true },
+  griddle:      { name: 'Pork chop griddle',    zh: '豬扒包', makes: 'porkchopBun', speed: 1,  price: 500,  color: '#5d656c' },
+  griddlePro:   { name: 'Double griddle',       zh: '豬扒包', makes: 'porkchopBun', speed: .6, price: 950,  color: '#3f464c', pro: true },
+  tartOven:     { name: 'Tart oven',            zh: '蛋撻',   makes: 'eggTart',     speed: 1,  price: 550,  color: '#c28a3a' },
+  tartOvenPro:  { name: 'Deck tart oven',       zh: '蛋撻',   makes: 'eggTart',     speed: .6, price: 1000, color: '#9a6a24', pro: true },
+  wok:          { name: 'Wok station',          zh: '乾炒牛河', makes: 'beefChowFun', speed: 1,  price: 700,  color: '#3b3f44' },
+  wokPro:       { name: 'Jet-burner wok',       zh: '乾炒牛河', makes: 'beefChowFun', speed: .6, price: 1300, color: '#26292d', pro: true },
   shelf:        { name: 'Stock shelf',          zh: '貨架',   price: 120, color: '#8a6a50', storage: 1 },
   pass:         { name: 'Serving hatch',        zh: '出餐',   fixed: true, color: '#aab3ba' },
 };
-export const APPLIANCE_SHOP = ['hotTea', 'icedTea', 'bun', 'butterBun', 'toaster', 'fryer', 'hotTeaPro', 'icedTeaPro', 'bunPro', 'butterBunPro', 'toasterPro', 'fryerPro', 'shelf'];
+export const APPLIANCE_SHOP = ['shelf', 'hotTea', 'icedTea', 'bun', 'butterBun', 'toaster', 'fryer', 'noodlePot', 'lemonBar', 'coffeeUrn', 'satayPot', 'griddle', 'tartOven', 'wok',
+  'hotTeaPro', 'icedTeaPro', 'bunPro', 'butterBunPro', 'toasterPro', 'fryerPro', 'noodlePotPro', 'lemonBarPro', 'coffeeUrnPro', 'satayPotPro', 'griddlePro', 'tartOvenPro', 'wokPro'];
 
 export const STYLES = {
   old:    { name: 'Old school', zh: '老派' },
@@ -107,6 +147,17 @@ export const DECOR = {
   lightbox:     { style: 'modern', kind: 'wall',    name: 'Lightbox menu',       zh: '燈箱餐牌', price: 220, appeal: 12 },
   terrazzo:     { style: 'modern', kind: 'floor',   name: 'Terrazzo',            zh: '水磨石', price: 500, appeal: 28 },
 
+  // premium pieces: open up at higher levels
+  dragonMural:  { style: 'old',    kind: 'wall',    name: 'Dragon & phoenix mural', zh: '龍鳳壁畫', price: 600,  appeal: 22, level: 6 },
+  rosewoodCab:  { style: 'old',    kind: 'block',   name: 'Rosewood display cabinet', zh: '酸枝櫃', price: 800, appeal: 26, level: 8 },
+  goldSign:     { style: 'old',    kind: 'wall',    name: 'Gilded shop sign',    zh: '金漆招牌', price: 1500, appeal: 40, level: 10 },
+  teaMural:     { style: 'simple', kind: 'wall',    name: 'Milk tea mural',      zh: '奶茶壁畫', price: 450,  appeal: 18, level: 6 },
+  fishTank:     { style: 'simple', kind: 'block',   name: 'Goldfish tank',       zh: '金魚缸', price: 600,  appeal: 22, level: 8 },
+  tramModel:    { style: 'simple', kind: 'block',   name: 'Ding-ding tram model', zh: '電車模型', price: 1200, appeal: 34, level: 10 },
+  neonWall:     { style: 'modern', kind: 'wall',    name: 'Neon wall piece',     zh: '霓虹牆', price: 700,  appeal: 24, level: 6 },
+  espressoBar:  { style: 'modern', kind: 'block',   name: 'Espresso bar',        zh: '咖啡吧', price: 900,  appeal: 28, level: 8 },
+  chandelier:   { style: 'modern', kind: 'ceiling', name: 'Brass chandelier',    zh: '水晶吊燈', price: 1400, appeal: 38, level: 10 },
+
   concrete:     { style: 'simple', kind: 'floor',   name: 'Bare concrete',       zh: '石屎地', price: 0, appeal: 0, hidden: true },
 };
 
@@ -127,7 +178,10 @@ export const AMBIENCE_TIERS = [
 
 // Daily targets. Every day has a sales target plus two goals picked for that day.
 // Hitting the sales target pays a bonus and popularity; each goal pays a smaller bonus.
-export const salesTarget = day => Math.round((450 + 150 * (day - 1)) / 50) * 50;
+// The sales target follows your level (more dishes, more you can sell) with a gentle nudge each day.
+// Tuned so a steady player earns about 2 stars a day and reaches level 10 in roughly a month of days.
+const TARGET_BY_LEVEL = [650, 850, 1050, 1200, 1350, 1500, 1600, 1700, 1800, 1900];
+export const salesTarget = (day, lvl = 1) => Math.round((TARGET_BY_LEVEL[Math.min(lvl, TARGET_BY_LEVEL.length) - 1] + 8 * (day - 1)) / 50) * 50;
 export const TARGET_REWARD = { cash: 100, popularity: 3 }, GOAL_REWARD = 60;
 export const GOALS = [
   { id: 'tickets', kind: 'min', stat: 'served',   n: d => 10 + 3 * d, label: n => `Serve ${n} tickets` },
@@ -137,6 +191,10 @@ export const GOALS = [
   { id: 'waste',   kind: 'max', stat: 'waste',    n: () => 0,         label: () => 'Waste nothing' },
   { id: 'iced',    kind: 'min', stat: 'sold.icedTea',   needs: 'icedTea',   n: d => 5 + d, label: n => `Sell ${n} iced milk teas` },
   { id: 'butter',  kind: 'min', stat: 'sold.butterBun', needs: 'butterBun', n: d => 4 + d, label: n => `Sell ${n} 菠蘿油` },
+  { id: 'noodle',  kind: 'min', stat: 'sold.noodleSpam', needs: 'noodleSpam', n: d => 3 + Math.floor(d / 3), label: n => `Sell ${n} 餐蛋麵` },
+  { id: 'lemon',   kind: 'min', stat: 'sold.lemonTea', needs: 'lemonTea', n: d => 4 + Math.floor(d / 3), label: n => `Sell ${n} 凍檸茶` },
+  { id: 'tart',    kind: 'min', stat: 'sold.eggTart', needs: 'eggTart', n: d => 5 + Math.floor(d / 3), label: n => `Sell ${n} 蛋撻` },
+  { id: 'wok',     kind: 'min', stat: 'sold.beefChowFun', needs: 'beefChowFun', n: d => 3 + Math.floor(d / 4), label: n => `Sell ${n} 乾炒牛河` },
 ];
 
 export const STARTING = {

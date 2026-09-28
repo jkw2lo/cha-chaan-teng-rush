@@ -1,14 +1,15 @@
 import { DECOR, APPLIANCES, MENU, INGREDIENTS, MENU_ORDER } from './data.js';
 import { fresh, load, save, clearSave } from './state.js';
-import { newRun, tick, clickStation, placeStockOrder, checkUnlocks, fmtMoney, itemReady, hasStation } from './sim.js';
+import { newRun, tick, clickStation, placeStockOrder, checkUnlocks, fmtMoney, itemReady, hasStation, maxed } from './sim.js';
 import { draw, hitTest, billboardHit, invalidateStatic, viewCentre, computeView } from './render.js';
 import { Iso } from './iso.js';
 import * as A from './art.js';
 import * as UI from './ui.js';
 import * as Ed from './edit.js';
 import { showSplash } from './splash.js';
+import { sfx, unlockAudio, callOut, startSizzle, stopSizzle, cycleSound, soundMode, hasCantoneseVoice } from './sound.js';
 import { buildSteps, runTour } from './tutorial.js';
-import { DH, KW, KH } from './world.js';
+import { DH, KW, KH, syncKitchen } from './world.js';
 
 const $ = id => document.getElementById(id);
 const canvas = $('game'), ctx = canvas.getContext('2d'), stage = $('stage');
@@ -17,6 +18,9 @@ let S = null, R = null, phase = 'title';
 const ui = { paused: false, speed: 1, edit: null, hover: null, cart: {}, drawerOpen: false, cam: { z: 1, x: 0, y: 0 } };
 let frame = { iso: null, hits: [] }, cssW = 800, cssH = 600, dpr = 1;
 let lastUI = 0, last = performance.now(), clock = 0;
+
+window.addEventListener('pointerdown', unlockAudio, true);
+window.addEventListener('keydown', unlockAudio, true);
 
 // ---------- sizing ----------
 function resize(){
@@ -49,10 +53,11 @@ function showBanner(){
   if (low.length) tips.push(`Low on ${low.join(', ')}.`);
   b.innerHTML = `<div class="bmain"><p class="eyebrow">Day ${S.day} · before opening</p><h2>Get ready, then open the shutters</h2>
     ${tips.length ? `<ul>${tips.map(t => `<li>${t}</li>`).join('')}</ul>` : '<p>Stock is healthy. Rearrange or redecorate if you like.</p>'}</div>
-    <div class="bgoals">${UI.goalsHTML(UI.previewGoals(S))}</div>
+    <div class="bgoals">${UI.goalsHTML(UI.previewGoals(S))}${maxed(S) ? `<label class="relax"><input type="checkbox" id="relaxToggle" ${S.relaxed ? 'checked' : ''}> Relaxed day: customers wait longer and walkouts don’t cost popularity</label>` : ''}</div>
     <button class="primary big" id="openBtn">Open for day ${S.day}</button>`;
   b.hidden = false;
   $('openBtn').onclick = openDay;
+  const rt = $('relaxToggle'); if (rt) rt.onchange = () => { S.relaxed = rt.checked; save(S); };
 }
 function openDay(){
   if (ui.edit) endEdit();
@@ -64,6 +69,7 @@ function openDay(){
 function finishDay(){
   phase = 'summary';
   UI.modal(UI.summaryHTML(S, R));
+  if (R.results && R.results.levelUp) sfx.levelUp(); else sfx.bell();
   S.history.push({ day: S.day, revenue: R.stats.revenue, tips: R.stats.tips, served: R.stats.served, walkouts: R.stats.walkouts });
 }
 function nextDay(){
@@ -110,6 +116,7 @@ $('editor').addEventListener('click', e => {
   if (b.dataset.buy) return;                       // buying starts on pointerdown (drag or click-then-place)
   else if (b.dataset.floor) msg = Ed.useFloor(S, b.dataset.floor);
   else if (b.dataset.expand !== undefined){ msg = Ed.expand(S); if (!msg) UI.flash('The dining room is bigger. More seats, more customers.', 'good'); }
+  else if (b.dataset.expandKitchen !== undefined){ msg = Ed.expandKitchen(S); if (!msg) UI.flash('The kitchen is bigger. Room for more stations.', 'good'); }
   else if (b.dataset.style) ui.edit.style = b.dataset.style;
   else if (b.dataset.cat) ui.edit.cat = b.dataset.cat;
   else if (b.dataset.rotate !== undefined) msg = Ed.rotate(S, R, ui);
@@ -149,7 +156,7 @@ $('drawer').addEventListener('click', e => {
 $('modal').addEventListener('click', e => {
   const b = e.target.closest('button'); if (!b) return;
   if (b.dataset.continue !== undefined){ UI.closeModal(); toPrep(); }
-  if (b.dataset.new !== undefined){ clearSave(); S = fresh(); UI.closeModal(); toPrep(); UI.flash('New game: back to day 1 with starter stock and $' + S.money + '.', 'good'); setTimeout(startTour, 350); }
+  if (b.dataset.new !== undefined){ clearSave(); S = fresh(); syncKitchen(S); UI.closeModal(); toPrep(); UI.flash('New game: back to day 1 with starter stock and $' + S.money + '.', 'good'); setTimeout(startTour, 350); }
   if (b.dataset.next !== undefined) nextDay();
   if (b.dataset.restock !== undefined){ nextDay(); openDrawer(); }
   if (b.dataset.edit){ nextDay(); beginEdit(b.dataset.edit); }
@@ -299,6 +306,7 @@ function handleClick(e, another){
   if (!st) return;
   if (phase !== 'day'){ UI.flash(phase === 'prep' ? 'Open the shop first, then click stations to cook.' : 'The day is over.'); return; }
   const r = clickStation(S, R, st, another);
+  if (r.added) sfx.queue(); else if (r.removed) sfx.clear(); else if (r.msg) sfx.deny();
   if (r.msg) UI.flash(r.msg, r.added || r.removed ? 'info' : 'bad');
 }
 canvas.addEventListener('click', e => handleClick(e, false));
@@ -417,8 +425,9 @@ function loop(now){
       const step = dt * ui.speed;
       clock += step;
       tick(S, R, step);
+      playEvents();
       if (R.over) finishDay();
-    } else if (phase !== 'day') clock += dt;
+    } else { stopSizzle(); if (phase !== 'day') clock += dt; }
     frame = draw(ctx, cssW, cssH, dpr, S, R, ui, clock);
     updateItemBar();
     if (now - lastUI > 120){
@@ -437,6 +446,26 @@ function refreshDrawerTimers(){ /* static drawer: nothing time-based to refresh 
 let lastCash = null;
 function refreshEditorCash(){ if (lastCash !== S.money){ lastCash = S.money; refreshEditor(); } }
 
+// ---------- sound ----------
+const HOT = new Set(['wok', 'wokPro', 'fryer', 'fryerPro', 'griddle', 'griddlePro', 'noodlePot', 'noodlePotPro', 'satayPot', 'satayPotPro']);
+function playEvents(){
+  const names = Object.fromEntries(Object.entries(MENU).map(([k, m]) => [k, m.zh]));
+  for (const e of R.events.splice(0)){
+    if (e.type === 'order') callOut(e.data, names);
+    else if (e.type === 'out') sfx.bell();
+    else if (sfx[e.type]) sfx[e.type]();
+  }
+  const cooking = R.avatar.phase === 'cook' && R.queue[0] && S.kitchen.find(k => k.id === R.queue[0].stationId);
+  cooking && HOT.has(cooking.type) ? startSizzle() : stopSizzle();
+}
+function syncSoundBtn(){
+  const m = soundMode();
+  $('soundBtn').textContent = m === 'all' ? '♪ On' : m === 'sfx' ? '♪ No voice' : '♪ Off';
+  $('soundBtn').title = m === 'all' ? (hasCantoneseVoice() ? 'Sound effects and Cantonese call-outs' : 'Sound effects (no Cantonese voice installed on this device)') : m === 'sfx' ? 'Sound effects only' : 'All sound off';
+}
+$('soundBtn').onclick = () => { cycleSound(); syncSoundBtn(); };
+syncSoundBtn();
+
 // ---------- debug hook: add ?debug to the URL ----------
 if (new URLSearchParams(location.search).has('debug')){
   window.cct = {
@@ -451,6 +480,7 @@ if (new URLSearchParams(location.search).has('debug')){
 // ---------- boot ----------
 const saved = load();
 S = saved || fresh();
+syncKitchen(S);
 if (new URLSearchParams(location.search).has('debug')) UI.modal(UI.titleHTML(!!saved));
 else showSplash(() => UI.modal(UI.titleHTML(!!saved)));
 requestAnimationFrame(loop);

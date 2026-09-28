@@ -15,6 +15,8 @@ export function newGame(){
     stock: Object.fromEntries(Object.keys(INGREDIENTS).map(k => [k, STARTING.stock[k] || 0])),
     unlocked: [...STARTING.unlocked],
     diningSize: 0,
+    kitchenSize: 0,
+    relaxed: false,
     stars: 0,
     kitchen: [
       { id: 1, type: 'pass',      x: 3, y: 6,  dir: 'S' },
@@ -56,7 +58,7 @@ export function load(){
     const S = JSON.parse(raw);
     if (S.version !== 1) return null;
     syncIds(S);
-    S.stars ??= 0;
+    S.stars ??= 0; S.kitchenSize ??= 0; S.relaxed ??= false;
     for (const k of Object.keys(INGREDIENTS)) S.stock[k] ??= 0;   // ingredients added since this save
     return S;
   } catch (e) { return null; }

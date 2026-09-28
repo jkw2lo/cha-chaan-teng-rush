@@ -1,6 +1,6 @@
 // One day of trading. `S` is the saved game, `R` is today's run.
 import { DAY_SECONDS, OPEN_HOUR, CLOSE_HOUR, QUEUE_MAX, PASS_MAX, GOALS, salesTarget, TARGET_REWARD, GOAL_REWARD, WALK_SPEED, CUSTOMER_SPEED, WAITER_SPEED,
-         WALKOUT_PENALTY, MENU, MENU_ORDER, INGREDIENTS, APPLIANCES, DECOR, BASE_PACKS, itemLevel, levelOf } from './data.js';
+         WALKOUT_PENALTY, MENU, MENU_ORDER, INGREDIENTS, APPLIANCES, DECOR, BASE_PACKS, itemLevel, levelOf, MAX_LEVEL } from './data.js';
 import { ambience, ambienceEffect } from './ambience.js';
 import { DIRS, HATCH, key, accessOf, bfs, inDining, inKitchen, kitchenBlocked, diningBlocked,
          doorCell, seatReport } from './world.js';
@@ -14,7 +14,7 @@ export function newRun(S){
   return {
     t: 0, running: true, closing: false, over: false, forcedAt: null,
     spawnIn: 3, ticket: 1,
-    customers: [], orders: [], queue: [], tray: [], waiters: [], deliveries: [], floaters: [], sparks: [],
+    customers: [], orders: [], queue: [], tray: [], waiters: [], deliveries: [], floaters: [], sparks: [], events: [],
     avatar: { x: 3.5, y: 8.5, path: [], phase: 'idle', cookLeft: 0, cookTotal: 0, face: 'S' },
     stats: { revenue: 0, tips: 0, waste: 0, served: 0, walkouts: 0, lost: 0, made: 0, fast: 0, sold: {}, popStart: S.popularity, moneyStart: S.money },
     goals: pickGoals(S),
@@ -29,7 +29,7 @@ export function pickGoals(S){
   const pool = GOALS.filter(g => !g.needs || S.unlocked.includes(g.needs));
   const chosen = [];
   while (chosen.length < 2 && pool.length) chosen.push(pool.splice(Math.floor(rnd() * pool.length), 1)[0]);
-  return { target: salesTarget(S.day), list: chosen.map(g => ({ id: g.id, n: g.n(S.day) })) };
+  return { target: salesTarget(S.day, level(S)), list: chosen.map(g => ({ id: g.id, n: g.n(S.day) })) };
 }
 const statOf = (R, path) => path.split('.').reduce((o, k) => (o || {})[k] || 0, R.stats);
 // Where each target stands right now. `done` for a max-goal means "still within the limit".
@@ -53,12 +53,16 @@ export const fmtMoney = n => (n < 0 ? '−$' : '$') + Math.abs(Math.round(n)).to
 export const servingCost = item => Math.max(1, Math.round(Object.entries(MENU[item].recipe)
   .reduce((sum, [i, n]) => sum + INGREDIENTS[i].cost / INGREDIENTS[i].pack * n, 0)));
 
+const emit = (R, type, data) => { if (R && R.events) R.events.push({ type, data }); };
 function say(R, text, tone = 'info'){ R.feed.unshift({ text, tone, t: R.t }); R.feed.length = Math.min(R.feed.length, 30); }
 function toast(R, text, tone = 'info'){ R.toasts.push({ id: uid++, text, tone, born: performance.now() }); }
 function floater(R, x, y, z, text, color){ R.floaters.push({ x, y, z, text, color, t0: R.t }); }
 
 // ---------- levels ----------
 export const level = S => levelOf(S.stars || 0);
+export const maxed = S => level(S) >= MAX_LEVEL;
+// Relaxed days (unlocked at the top level): customers wait much longer and walkouts don't cost popularity.
+export const relaxed = S => maxed(S) && S.relaxed;
 export const itemReady = (S, item) => level(S) >= itemLevel(item);           // reached the level for it
 export const hasStation = (S, item) => S.kitchen.some(k => APPLIANCES[k.type].makes === item);
 // Ingredients you can see and order: the ones used by anything you've reached the level for.
@@ -84,7 +88,7 @@ export function checkUnlocks(S, R){
     if (S.unlocked.includes(item) || !itemReady(S, item) || !hasStation(S, item)) continue;
     if (Object.keys(MENU[item].recipe).every(i => S.stock[i] > 0)){
       S.unlocked.push(item);
-      if (R){ toast(R, `New on the menu: ${MENU[item].zh} ${MENU[item].name}`, 'good'); say(R, `${MENU[item].zh} added to the menu`, 'good'); }
+      if (R){ emit(R, 'unlock'); toast(R, `New on the menu: ${MENU[item].zh} ${MENU[item].name}`, 'good'); say(R, `${MENU[item].zh} added to the menu`, 'good'); }
     }
   }
 }
@@ -196,6 +200,7 @@ function updateCook(S, R, dt){
     A.blocked = false;
     const q = R.queue.shift();
     R.tray.push({ id: uid++, item: q.item, made: R.t, fresh: R.t + MENU[q.item].fresh, total: MENU[q.item].fresh });
+    emit(R, 'ready');
     R.stats.made++;
     A.phase = 'idle';
   }
@@ -232,7 +237,7 @@ function freeSeats(S, R){
 function pickOrder(S, R){
   const menu = sellable(S, R);
   if (!menu.length) return null;
-  const d = S.day, weights = [50, 32, 13 + d, 5 + d / 2];
+  const d = Math.min(S.day, 10), weights = [50, 32, 13 + d, 5 + d / 2];      // orders grow for ten days, then hold
   let r = Math.random() * weights.reduce((a, b) => a + b), n = 1;
   for (let i = 0; i < weights.length; i++){ r -= weights[i]; if (r <= 0){ n = i + 1; break; } }
   const items = {};
@@ -251,6 +256,7 @@ function spawnCustomer(S, R){
   const seat = pick(seats), door = doorCell(S), blocked = diningBlocked(S.dining.items);
   const path = bfs(door, [seat.x, seat.y], (x, y) => inDining(S, x, y) && !blocked.has(key(x, y)));
   if (!path){ R.stats.lost++; return; }
+  emit(R, 'door');
   R.customers.push({ id: uid++, x: door[0] + .5, y: -.6, path: [door, ...path], state: 'walkIn', seatId: seat.id,
                      look: randomLook(), face: 'S', since: R.t });
 }
@@ -264,9 +270,10 @@ function leave(S, R, c, angry){
 }
 function walkout(S, R, c, o){
   R.orders.splice(R.orders.indexOf(o), 1);
-  S.popularity = Math.max(0, S.popularity - WALKOUT_PENALTY);
+  if (!relaxed(S)) S.popularity = Math.max(0, S.popularity - WALKOUT_PENALTY);
   R.stats.walkouts++;
   floater(R, c.x, c.y, 1.4, 'Too slow!', '#ff6b5b');
+  emit(R, 'walkout');
   say(R, `#${o.no} walked out`, 'bad');
   leave(S, R, c, true);
 }
@@ -281,9 +288,12 @@ function updateCustomers(S, R, dt){
       if (R.closing && R.forcedAt){ leave(S, R, c); continue; }
       const ord = pickOrder(S, R);
       if (!ord){ R.stats.lost++; leave(S, R, c); continue; }
-      const patience = (28 + 13 * ord.count) * Math.max(.72, 1 - (S.day - 1) * .025);
+      // slow dishes (noodles, chow fun) buy you extra time
+      const slow = Object.entries(ord.items).reduce((t, [it, n]) => t + Math.max(0, MENU[it].cook - 5) * 1.6 * n, 0);
+      const patience = (28 + 13 * ord.count + slow) * Math.max(.85, 1 - (S.day - 1) * .015) * (relaxed(S) ? 1.8 : 1);
       const o = { id: uid++, no: R.ticket++, custId: c.id, items: ord.items, count: ord.count, created: R.t, deadline: R.t + patience, sent: false };
       R.orders.push(o); c.orderId = o.id; c.state = 'waiting';
+      emit(R, 'order', o.items);
     } else if (c.state === 'waiting'){
       const o = R.orders.find(o => o.id === c.orderId);
       if (o && !o.sent && R.t > o.deadline) walkout(S, R, c, o);
@@ -320,6 +330,7 @@ function allocate(S, R){
       for (const t of pool){ R.tray.splice(R.tray.indexOf(t), 1); taken.push(it); }
     }
     o.sent = true; o.sentAt = R.t;
+    emit(R, 'out');
     dispatchWaiter(S, R, o, taken);
   }
 }
@@ -346,10 +357,11 @@ function serve(S, R, w){
   R.stats.revenue += subtotal; R.stats.tips += tip; R.stats.served++;
   if (r >= .5) R.stats.fast++;
   for (const [it, n] of Object.entries(o.items)) R.stats.sold[it] = (R.stats.sold[it] || 0) + n;
-  S.popularity = Math.min(100, S.popularity + .12 + .38 * r);
+  S.popularity = Math.min(100, S.popularity + .15 + .45 * r);
   c.state = 'eating'; c.food = w.items; c.eatStart = R.t; c.eatUntil = R.t + 7 + 2.5 * w.items.length;
   floater(R, c.x, c.y, 1.5, `+${fmtMoney(subtotal + tip)}`, r > .6 ? '#7fe08a' : '#ffd166');
   R.sparks.push({ x: c.x, y: c.y, t0: R.t, seed: Math.random() * 6 });
+  emit(R, 'cash');
 }
 function updateWaiters(S, R, dt){
   for (const w of [...R.waiters]){
@@ -367,6 +379,7 @@ function wasteTray(S, R, t, reason){
   const cost = servingCost(t.item);
   S.money -= cost; R.stats.waste += cost;
   say(R, `${MENU[t.item].zh} wasted −${fmtMoney(cost)}`, 'bad');
+  emit(R, 'waste');
 }
 
 // ---------- main tick ----------
@@ -380,6 +393,7 @@ export function tick(S, R, dt){
       S.stock[d.ing] += d.qty;
       R.deliveries.splice(R.deliveries.indexOf(d), 1);
       say(R, `+${d.qty} ${INGREDIENTS[d.ing].name.toLowerCase()} arrived`, 'good');
+      emit(R, 'delivery');
       toast(R, `Delivery arrived: ${INGREDIENTS[d.ing].zh} ×${d.qty}`, 'good');
       checkUnlocks(S, R);
     }
@@ -431,6 +445,8 @@ function endDay(S, R){
   const before = level(S);
   S.stars = (S.stars || 0) + stars;
   const after = level(S);
+  // overnight, word of mouth drifts popularity back toward a steady baseline
+  if (S.popularity < 35) S.popularity += (35 - S.popularity) * .25;
   R.results = { ...g, bonus, stars, levelUp: after > before ? after : null,
     newItems: after > before ? MENU_ORDER.filter(m => itemLevel(m) > before && itemLevel(m) <= after) : [] };
   checkUnlocks(S, null);

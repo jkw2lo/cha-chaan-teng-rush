@@ -453,3 +453,24 @@ body.dragging, body.dragging *{cursor:grabbing !important; user-select:none}
 .zoomer button{background:rgba(21,48,42,.9); border:1px solid rgba(255,255,255,.18); color:#eef2ee; border-radius:8px; padding:7px 12px; font-weight:700; min-width:38px}
 .zoomer button:hover{border-color:var(--gold)}
 #game.panning{cursor:grabbing !important}
+
+/* compact inventory: two tiles per row once the list gets long */
+#inv.compact{display:grid; grid-template-columns:1fr 1fr; gap:6px}
+#inv.compact .inv{grid-template-columns:22px 1fr auto; grid-template-areas:'chip nm nm' 'chip qty qo' 'bar bar bar' 'note note note';
+  background:#fff; border-radius:8px; padding:5px 7px; border-bottom:0; box-shadow:inset 0 0 0 1px #e6dcc4; row-gap:2px; column-gap:6px}
+#inv.compact .inv .chip{width:22px; height:22px; font-size:12px !important}
+#inv.compact .inv .nm{font-size:11px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+#inv.compact .inv .qty{font-size:15px; text-align:left}
+#inv.compact .inv .qty small{font-size:10px}
+#inv.compact .inv .qo{padding:1px 5px; font-size:10px} #inv.compact .inv .qo small{display:none}
+#inv.compact .inv .bar{height:5px}
+#inv.compact .inv .invnote{font-size:10px}
+.card.premium{background:linear-gradient(#fffaf0, #fff3cf)} .card.premium b::after{content:" ★"; color:var(--gold)}
+.relax{display:flex; gap:6px; align-items:flex-start; font-size:12px; margin-top:6px; color:var(--ink)}
+.brandbtns{display:flex; gap:6px}
+/* brand row: keep the name on one line next to the two small buttons */
+.sidetop .brandrow{gap:8px}
+.sidetop .brand{white-space:nowrap; padding:3px 9px 4px}
+.sidetop .brand .zh{font-size:18px} .sidetop .brand .en{font-size:14px}
+.brandbtns{flex-wrap:nowrap}
+.brandbtns .tourbtn{padding:3px 8px; font-size:11px; white-space:nowrap}

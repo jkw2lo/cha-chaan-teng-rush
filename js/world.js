@@ -1,9 +1,12 @@
 // The restaurant is one grid in world coordinates.
 // Dining room: x 0..diningWidth, y 0..DH.  Kitchen: x 0..KW, y DH..DH+KH.
 // A low partition wall runs along y = DH; the serving hatch is the gap in it.
-import { DINING_SIZES, DECOR, APPLIANCES } from './data.js';
+import { DINING_SIZES, KITCHEN_SIZES, DECOR, APPLIANCES } from './data.js';
 
-export const DH = 6, KW = 8, KH = 6, KY0 = DH;
+export const DH = 6, KH = 6, KY0 = DH;
+// Kitchen width can grow (bought between days). It's a live binding: call syncKitchen(S) whenever S changes.
+export let KW = 8;
+export const syncKitchen = S => { KW = KITCHEN_SIZES[S.kitchenSize || 0].w; };
 export const WALL_H = 2.4, PARTITION_H = 1.2;
 export const DIRS = { N: [0, -1], E: [1, 0], S: [0, 1], W: [-1, 0] };
 export const DIR_ORDER = ['S', 'W', 'N', 'E'];

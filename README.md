@@ -11,7 +11,7 @@ Plain HTML, CSS and JS modules. No build step and no dependencies. It runs in an
 ES modules don't load from `file://`, so serve the folder. Needs Node 18 or later.
 
     node tools/server.mjs          # open http://localhost:8741 (moves to the next free port if that one's taken)
-    node tools/simulate.mjs 3      # play 3 days headlessly with a bot cook, prints a line per day
+    node tools/simulate.mjs 30 casual    # play 30 days headlessly with a human-paced bot (or 'perfect'), one line per day
 
 ## Controls
 
@@ -19,7 +19,7 @@ ES modules don't load from `file://`, so serve the folder. Needs Node 18 or late
 - **Mouse wheel / trackpad** zooms toward the pointer; drag empty floor to pan. **K** jumps to the kitchen, **0** shows the whole shop, **+ / −** zoom.
 - **Space** pauses. The speed button cycles 1× / 2× / 3×.
 - While editing: drag to buy or move, **R** rotates, **Esc** cancels or deselects.
-- **? Tour** (top left, before opening) replays the walkthrough.
+- **? Tour** (top left, before opening) replays the walkthrough. **♪** cycles sound: effects and Cantonese call-outs, effects only, or off.
 
 Add `?debug` to the URL for `window.cct` in the console: `cct.S` (save), `cct.R` (today), `cct.money(500)`, `cct.stars(3)`, `cct.ff(60)` (fast-forward 60 game seconds).
 
@@ -32,7 +32,22 @@ Add `?debug` to the URL for `window.cct` in the console: `cct.S` (save), `cct.R`
 - **Stock.** Every item uses ingredients. What's already in the queue is reserved. Each ingredient holds 2 packs, plus 1 more pack per stock shelf in the kitchen; you can't order past that. Deliveries during the day take 30–60 seconds. Orders placed between days arrive before opening. If everything on the menu is sold out and nothing is on the way, the shop has to close early.
 - **Targets.** Each day has a sales target (sales plus tips) and two goals picked for that day, such as serving a number of tickets or wasting nothing. The sales target pays $100 and +3 popularity; each goal pays $60. The day summary scores you out of three stars.
 - **Unlocks.** Iced milk tea and 菠蘿油 aren't on the menu until you've bought ice and butter for the first time.
-- **Levels.** The stars from daily targets add up to a restaurant level (3 stars for level 2, 7 for level 3, then 12, 18, 25). Each level can open up new menu items: their station appears in the kitchen shop and their ingredients in the inventory and restock list. An item goes on the menu once you own its station and have its ingredients. Level 2 opens 奶油多 (toaster: bread, butter, condensed milk); level 3 opens 西多士 (French toast pan: bread ×2, egg, butter, syrup).
+- **Levels.** The stars from daily targets add up to a restaurant level, from 1 to 10 (3, 7, 12, 17, 23, 29, 36, 43 and 50 stars). Each level opens a new dish: its station appears in the kitchen shop and its ingredients in the inventory. A dish goes on the menu once you own its station and have its ingredients. The sales target follows your level, not the day.
+
+  | Level | Dish | Station | New ingredients |
+  |---|---|---|---|
+  | 2 | 奶油多 condensed milk toast | toaster | bread, condensed milk |
+  | 3 | 西多士 French toast | French toast pan | eggs, golden syrup |
+  | 4 | 餐蛋麵 luncheon meat & egg noodles | noodle pot | instant noodles, luncheon meat |
+  | 5 | 凍檸茶 iced lemon tea | lemon tea bar | lemons |
+  | 6 | 鴛鴦 yuenyeung | coffee urn | coffee |
+  | 7 | 沙嗲牛麵 satay beef noodles | satay pot | beef, satay & soy |
+  | 8 | 豬扒包 pork chop bun | pork chop griddle | pork chops |
+  | 9 | 蛋撻 egg tart | tart oven | tart pastry |
+  | 10 | 乾炒牛河 beef chow fun | wok station | rice noodles |
+
+  Levels 5 and 8 also let you knock the kitchen through (8 → 10 → 12 columns), and levels 6, 8 and 10 open premium decor in each style. At level 10 you can switch on **relaxed days**: customers wait much longer and walkouts don't cost popularity, for building out the shop at your own pace.
+- **Sound.** Everything is synthesised in the browser (no audio files). New orders are called out in Cantonese if the device has a Cantonese voice installed.
 
 ## Between days
 
@@ -60,6 +75,7 @@ Rearranging only happens between days: before you open, or from the end-of-day s
 | `js/main.js` | loop, input, camera and the day flow (title → before opening → day → summary) |
 | `js/splash.js` | the opening street scene |
 | `js/tutorial.js` | the walkthrough for new games |
+| `js/sound.js` | synthesised sound effects and Cantonese call-outs |
 | `tools/server.mjs` | a tiny static dev server |
 | `tools/simulate.mjs` | headless bot that plays whole days, for balancing |
 

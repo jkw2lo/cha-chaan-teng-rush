@@ -1,5 +1,5 @@
 // DOM panels around the canvas. Everything here reads state; main.js wires the buttons.
-import { MENU, MENU_ORDER, INGREDIENTS, APPLIANCES, APPLIANCE_SHOP, DECOR, STYLES, DINING_SIZES, DAY_SECONDS, QUEUE_MAX, PASS_MAX, AMBIENCE_MAX, TARGET_REWARD, GOAL_REWARD, LEVEL_STARS, itemLevel } from './data.js';
+import { MENU, MENU_ORDER, INGREDIENTS, APPLIANCES, APPLIANCE_SHOP, DECOR, STYLES, DINING_SIZES, DAY_SECONDS, QUEUE_MAX, PASS_MAX, AMBIENCE_MAX, TARGET_REWARD, GOAL_REWARD, LEVEL_STARS, itemLevel, KITCHEN_SIZES, MAX_LEVEL } from './data.js';
 import { level, itemReady, hasStation, visibleIngredients, clockHour, fmtClock, fmtMoney, dayProgress, capacity, shelves, packsRoom, incoming, passClaims, goalStatus, pickGoals } from './sim.js';
 import { ambience, appealGain, ambienceEffect } from './ambience.js';
 import { iconURL } from './art.js';
@@ -28,7 +28,7 @@ export function renderTop(S, R, phase, ui){
   const m = $('money'); m.textContent = fmtMoney(S.money); m.classList.toggle('neg', S.money < 0);
   $('pop').innerHTML = stars(S.popularity);
   const lv = level(S), next = LEVEL_STARS[lv];
-  setHTML('lvl', `${lv}<i class="of">${next !== undefined ? `★ ${S.stars}/${next}` : '★ max'}</i>`);
+  setHTML('lvl', `${lv}<i class="of">${next !== undefined ? `★ ${S.stars}/${next}` : `★ ${S.stars} · max`}</i>`);
   const coming = MENU_ORDER.find(m => itemLevel(m) === lv + 1);
   $('lvlStat').title = next !== undefined ? `${next - S.stars} more stars to level ${lv + 1}${coming ? `, which opens up ${MENU[coming].zh} ${MENU[coming].name.toLowerCase()}` : ''}. Earn up to 3 stars a day from the targets.` : 'Top level.';
   const a = ambience(S), eff = ambienceEffect(a.total);
@@ -68,7 +68,9 @@ export function renderSide(S, R){
   // inventory: one fixed grid so every bar lines up
   const sh = shelves(S);
   $('capNote').textContent = `Holds ${2 + sh} packs of each. The + button orders one pack.`;
-  setHTML('inv', visibleIngredients(S).map(k => [k, INGREDIENTS[k]]).map(([k, ing]) => {
+  const visible = visibleIngredients(S);
+  $('inv').classList.toggle('compact', visible.length > 7);
+  setHTML('inv', visible.map(k => [k, INGREDIENTS[k]]).map(([k, ing]) => {
     const stock = S.stock[k], cap = capacity(S, k), inc = R ? R.deliveries.filter(d => d.ing === k) : [];
     const pct = Math.min(100, (Math.max(0, stock) / cap) * 100), incPct = Math.min(100 - pct, incoming(R, k) / cap * 100);
     const tone = stock <= 0 ? 'out' : stock < 4 ? 'low' : '';
@@ -191,9 +193,13 @@ export function renderEditor(S, ui){
   const sel = E.selected && (kitchen ? S.kitchen.find(i => i.id === E.selected) : (S.dining.items.find(i => i.id === E.selected) || S.dining.wall.find(i => i.id === E.selected)));
   let cards;
   if (kitchen){
-    cards = APPLIANCE_SHOP.map(k => {
+    const nk = KITCHEN_SIZES[(S.kitchenSize || 0) + 1];
+    const kCard = nk ? (level(S) < nk.level
+      ? `<button class="card expand locked" disabled><span class="glyph">擴</span><b>${nk.name}</b><small>${nk.zh} · 2 more columns</small><em>Level ${nk.level}</em></button>`
+      : `<button class="card expand" data-expand-kitchen ${nk.price > S.money ? 'disabled' : ''}><span class="glyph">擴</span><b>${nk.name}</b><small>${nk.zh} · 2 more columns of kitchen</small><em>${fmtMoney(nk.price)}</em></button>`) : '';
+    cards = kCard + APPLIANCE_SHOP.map(k => {
       const ap = APPLIANCES[k], makes = ap.makes ? MENU[ap.makes] : null;
-      const detail = makes ? `${makes.zh} · ${Math.round(makes.cook * ap.speed * 10) / 10}s${ap.pro ? ' · faster' : ''}` : 'Storage';
+      const detail = makes ? `${makes.zh} · ${Math.round(makes.cook * ap.speed * 10) / 10}s${ap.pro ? ' · faster' : ''}` : 'Holds +1 pack of everything';
       if (ap.makes && !itemReady(S, ap.makes)) return `<button class="card locked" disabled title="Opens at level ${itemLevel(ap.makes)}"><img src="${icon(ap.makes)}" alt=""><b>${ap.name}</b><small>${makes.zh} · ${makes.name}</small><em>Level ${itemLevel(ap.makes)}</em></button>`;
       const isNew = ap.makes && !hasStation(S, ap.makes) && !ap.pro;
       return card(k, ap.name, ap.zh, detail, ap.price, S.money, ap.makes ? `<img src="${icon(ap.makes)}" alt="">` : `<span class="glyph">貨</span>`, (ap.pro ? 'pro' : '') + (isNew ? ' fresh' : ''));
@@ -208,7 +214,9 @@ export function renderEditor(S, ui){
           ${using ? '' : `<span class="gain">+${appealGain(S, k)} ambience</span>`}<em>${using ? 'In use' : owned ? 'Owned · use' : fmtMoney(d.price)}</em></button>`;
       }).join('');
     const items = Object.entries(DECOR).filter(([k, d]) => d.kind !== 'floor' && !d.hidden && (E.style === 'all' || d.style === E.style) && (E.cat === 'all' || E.cat === d.kind))
-      .map(([k, d]) => card(k, d.name, d.zh, `${STYLES[d.style].name} · ${kindName(d.kind)}`, d.price, S.money, `<canvas class="dthumb" data-thumb="${k}" width="120" height="96"></canvas>`, d.style, appealGain(S, k))).join('');
+      .map(([k, d]) => (d.level || 0) > level(S)
+        ? `<button class="card locked ${d.style}" disabled title="Opens at level ${d.level}"><canvas class="dthumb" data-thumb="${k}" width="120" height="96"></canvas><b>${d.name}</b><small>${d.zh} · ${STYLES[d.style].name}</small><em>Level ${d.level}</em></button>`
+        : card(k, d.name, d.zh, `${STYLES[d.style].name} · ${kindName(d.kind)}`, d.price, S.money, `<canvas class="dthumb" data-thumb="${k}" width="120" height="96"></canvas>`, d.style + (d.level ? ' premium' : ''), appealGain(S, k))).join('');
     const expandCard = next ? `<button class="card expand" data-expand ${next.price > S.money ? 'disabled' : ''}>
         <span class="glyph">擴</span><b>${next.name}</b><small>${next.zh} · room for ${next.w - DINING_SIZES[S.diningSize].w} more columns</small><em>${fmtMoney(next.price)}</em></button>` : '';
     cards = expandCard + items + floorCards;

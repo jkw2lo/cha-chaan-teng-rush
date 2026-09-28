@@ -48,7 +48,7 @@ function roundRect(c, x, y, w, h, r){ c.beginPath(); c.roundRect(x, y, w, h, r);
 
 export function draw(ctx, cssW, cssH, dpr, S, R, ui, t){
   const view = computeView(cssW, cssH, S, ui.cam);
-  const sk = [cssW, cssH, dpr, S.diningSize, S.dining.floor, view.s.toFixed(2), view.ox.toFixed(1), view.oy.toFixed(1)].join('|');
+  const sk = [cssW, cssH, dpr, S.diningSize, S.kitchenSize || 0, S.dining.floor, view.s.toFixed(2), view.ox.toFixed(1), view.oy.toFixed(1)].join('|');
   if (sk !== staticKey){ staticLayer = buildStatic(S, view, cssW, cssH, dpr); staticKey = sk; }
   ctx.setTransform(1, 0, 0, 1, 0, 0);
   ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
