@@ -2,7 +2,7 @@
 // Anything restaurant-specific (dishes, stations, furniture) is drawn by the active theme's art.js.
 import { shade } from './iso.js';
 import { APPLIANCES, DECOR, THEME } from './data.js';
-import { WALL_H, PARTITION_H, DH, KW, KH, WINDOW_SLOTS, wallSide } from './world.js';
+import { WALL_H, PARTITION_H, DH, KW, KH, WINDOW_SLOTS, wallSide, DIRS } from './world.js';
 
 export const TAU = Math.PI * 2;
 export const HAN = '"Noto Serif TC", "Songti TC", "PMingLiU", serif';
@@ -255,7 +255,19 @@ function capsule(c, x1, y1, x2, y2, w, col, lw){
 }
 function blob(c, x, y, r, col, lw){ c.beginPath(); c.arc(x, y, r, 0, TAU); c.fillStyle = col; c.fill(); c.strokeStyle = OUTLINE; c.lineWidth = lw; c.stroke(); }
 
+// A dim sum trolley: steel cart with stacked bamboo steamers, pushed ahead of the waiter.
+export function drawTrolley(iso, x, y, face, t){
+  const [dx, dy] = DIRS[face] || [0, 1], cx = x + dx * .42, cy = y + dy * .42;
+  contactShadow(iso, cx - .22, cy - .22, cx + .22, cy + .22, .22);
+  iso.box(cx - .2, cy - .2, cx + .2, cy + .2, .12, .5, '#b9c0c7', { material: 'steel' });
+  for (const [ox, oy] of [[-.16, -.16], [.16, -.16], [-.16, .16], [.16, .16]]) iso.cyl(cx + ox, cy + oy, .035, 0, .12, '#2b2b2b');
+  for (let i = 0; i < 3; i++) iso.cyl(cx - .02, cy - .02, .13, .5 + i * .09, .58 + i * .09, '#c9a26b', i === 2 ? '#b88d55' : undefined);
+  steam(iso, cx, cy, .82, t, 2);
+}
 export function drawPerson(iso, p, t){
+  // the trolley is drawn behind the waiter when they push it away from us, in front when towards us
+  const cartFront = p.cart && (p.face === 'S' || p.face === 'E');
+  if (p.cart && !cartFront) drawTrolley(iso, p.x, p.y, p.face, t);
   const c = iso.ctx, k = iso.s, L = p.look || {};
   const role = p.role || 'customer', back = p.face === 'N' || p.face === 'W';
   const m = (p.face === 'S' || p.face === 'W') ? -1 : 1;             // which way they face on screen
@@ -437,6 +449,7 @@ export function drawPerson(iso, p, t){
     const n = Math.min(3, p.carrying.length), sz = k * .22;
     p.carrying.slice(0, 3).forEach((it, i) => c.drawImage(iconCanvas(it), tx - (n * sz * .8) / 2 + i * sz * .8, ty - sz * .9, sz, sz));
   }
+  if (cartFront) drawTrolley(iso, p.x, p.y, p.face, t);
   return [hx, hy - (role === 'cook' ? hr * 1.2 : 0), hr];
 }
 // Screen direction of facing, for legs when seated (unit-ish vectors in screen space)

@@ -125,7 +125,7 @@ export function draw(ctx, cssW, cssH, dpr, S, R, ui, t){
       }
     }
     for (const w of R.waiters){
-      list.push({ k: w.x + w.y, f: () => A.drawPerson(iso, { x: w.x, y: w.y, z: 0, look: { skin: '#d9a57a', hair: '#1f1a17', style: 'short' }, walking: true, face: w.face, role: 'waiter', carrying: w.items }, t) });
+      list.push({ k: w.x + w.y, f: () => A.drawPerson(iso, { x: w.x, y: w.y, z: 0, look: { skin: '#d9a57a', hair: '#1f1a17', style: 'short' }, walking: true, face: w.face, role: 'waiter', carrying: THEME.meta.trolley ? [] : w.items, cart: THEME.meta.trolley && w.phase === 'out' }, t) });
     }
     const Av = R.avatar;
     list.push({ k: Av.x + Av.y, f: () => A.drawPerson(iso, { x: Av.x, y: Av.y, z: 0, look: { skin: '#e6b58c', hair: '#1f1a17' }, walking: Av.phase === 'walk', face: Av.face, role: 'cook', busy: Av.phase === 'cook' }, t) });
@@ -307,12 +307,13 @@ function drawCustomerOverlay(iso, R, cust, pos, t, S){
       c.font = `700 ${Math.round(s * .36)}px "Noto Serif TC", serif`;
       const w1 = c.measureText(ph.zh).width;
       c.font = `600 ${Math.round(s * .22)}px Karla, sans-serif`;
-      const w2 = c.measureText(ph.jp).width, bw = Math.max(w1, w2) + 24, bh = s * .84, bx = hx - bw / 2, by = y - 12 - bh;
+      const w2 = c.measureText(ph.jp).width, bw = Math.max(w1, w2) + 24, bh = s * .84, by = y - 12 - bh;
+      const bx = Math.max(6, Math.min(c.canvas.clientWidth - bw - 6, hx - bw / 2)), tx = bx + bw / 2;   // keep it on screen
       c.fillStyle = '#1f2a26'; roundRect(c, bx, by, bw, bh, 10); c.fill();
       c.beginPath(); c.moveTo(hx - 6, by + bh); c.lineTo(hx, by + bh + 7); c.lineTo(hx + 6, by + bh); c.fill();
       c.textAlign = 'center'; c.textBaseline = 'middle';
-      c.fillStyle = '#fff3c4'; c.font = `700 ${Math.round(s * .36)}px "Noto Serif TC", serif`; c.fillText(ph.zh, hx, by + bh * .36);
-      c.fillStyle = '#9fd4c0'; c.font = `600 ${Math.round(s * .22)}px Karla, sans-serif`; c.fillText(ph.jp, hx, by + bh * .74);
+      c.fillStyle = '#fff3c4'; c.font = `700 ${Math.round(s * .36)}px "Noto Serif TC", serif`; c.fillText(ph.zh, tx, by + bh * .36);
+      c.fillStyle = '#9fd4c0'; c.font = `600 ${Math.round(s * .22)}px Karla, sans-serif`; c.fillText(ph.jp, tx, by + bh * .74);
       c.restore();
     }
   } else if (cust.state === 'leaving' && cust.angry){

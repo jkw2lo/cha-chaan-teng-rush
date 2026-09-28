@@ -1,17 +1,31 @@
 # Cha Chaan Teng Rush
 
-**Play it:** https://jkw2lo.github.io/cha-chaan-teng-rush/
+**Play it:** https://jkw2lo.github.io/cha-chaan-teng-rush/ · **Dim Sum Rush:** https://jkw2lo.github.io/cha-chaan-teng-rush/?game=dimsum
 
 A cooking and restaurant-management game set in a Hong Kong cha chaan teng (茶餐廳). You run the kitchen during a 12-minute day, keep the stock up, and spend the takings on furniture, a bigger dining room and faster appliances between days.
 
 Plain HTML, CSS and JS modules. No build step and no dependencies. It runs in any modern browser and is served as a static site. GitHub Pages serves `main` directly, so pushing is deploying.
+
+## Two restaurants, one engine
+
+The game engine is shared; each restaurant is a theme in `themes/`:
+
+- **Cha Chaan Teng Rush** (`themes/cct`, the default): milk tea, pineapple buns, noodles and toast.
+- **Dim Sum Rush** (`themes/dimsum`, `?game=dimsum`): a Sunday-morning 酒樓. Steamers make several baskets per job (`batch`), finished baskets ride on a trolley that holds 8, waiters push the trolley to the tables, and a full trolley sheds its oldest unwanted basket (counted as waste) instead of jamming the kitchen.
+
+Each keeps its own save. The title card links to the other one.
+
+## Learning mode
+
+Off by default; switch it on from the title card or the **學** button. Tickets show dish names in Cantonese with Jyutping, which fades as you learn each dish. Customers say their whole order in a bubble (「唔該，兩籠蝦餃！」) and aloud when the device has a Cantonese voice. After 6 servings a dish is *known*: its picture drops off the ticket, and tickets you fill by reading alone tip 15% more. The **學** button also opens your word list.
 
 ## Running it locally
 
 ES modules don't load from `file://`, so serve the folder. Needs Node 18 or later.
 
     node tools/server.mjs          # open http://localhost:8741 (moves to the next free port if that one's taken)
-    node tools/simulate.mjs 30 casual    # play 30 days headlessly with a human-paced bot (or 'perfect'), one line per day
+    node tools/simulate.mjs 30 casual              # 30 days with a human-paced bot (or 'perfect'), one line per day
+    GAME=dimsum node tools/simulate.mjs 30 casual  # the same for Dim Sum Rush
 
 ## Controls
 
@@ -62,29 +76,36 @@ Rearranging only happens between days: before you open, or from the end-of-day s
 
 | file | what's in it |
 |---|---|
-| `js/data.js` | every tuning number: menu, ingredients, appliances, furniture, prices, day length |
+| `js/data.js` | engine tuning, plus the active theme's content once `useTheme()` has run |
 | `js/state.js` | the saved game (money, stock, layout) and localStorage |
 | `js/world.js` | grid layout, pathfinding, layout validation, seat checks |
-| `js/sim.js` | one day: customers, tickets, cook queue, pass, waiters, deliveries, popularity, storage |
+| `js/sim.js` | one day: customers, tickets, cook queue, pass, waiters, deliveries, popularity, storage, learning |
 | `js/ambience.js` | decor appeal, same-style set multipliers, and what ambience does |
-| `js/iso.js` | isometric projection and drawing primitives |
-| `js/art.js` | drawings of every station, piece of furniture, wall, floor, person and menu icon |
+| `js/iso.js` | isometric projection and drawing primitives (lit boxes, cylinders, materials) |
+| `js/art.js` | shared drawing: people, walls, light, doors, windows, the trolley, helpers for themes |
 | `js/render.js` | draws a frame in depth order and returns click targets |
 | `js/edit.js` | buying, placing, moving, rotating, selling |
-| `js/ui.js` | the HTML panels: top bar, tickets, inventory, restock, catalogue, summary |
-| `js/main.js` | loop, input, camera and the day flow (title → before opening → day → summary) |
-| `js/splash.js` | the opening street scene |
+| `js/ui.js` | the HTML panels: status, tickets, inventory, restock, catalogue, summary, word list |
+| `js/main.js` | loads the theme, then the loop, input, camera and day flow |
+| `js/splash.js` | the opening street scene (signs and title come from the theme) |
 | `js/tutorial.js` | the walkthrough for new games |
-| `js/sound.js` | synthesised sound effects and Cantonese call-outs |
+| `js/sound.js` | synthesised sound effects and spoken orders in the theme's language |
+| `themes/<id>/index.js` | the theme's name, sign, palette, language, splash, and how customers phrase orders |
+| `themes/<id>/data.js` | its ingredients, menu (with romanisation and measure words), appliances, decor, goals and starting layout |
+| `themes/<id>/art.js` | its dish icons, stations, furniture, lamps, wall pieces and floors |
 | `tools/server.mjs` | a tiny static dev server |
-| `tools/simulate.mjs` | headless bot that plays whole days, for balancing |
+| `tools/simulate.mjs` | headless bot that plays whole days, for balancing (`GAME=` picks the theme) |
+
+## Adding a restaurant
+
+Copy `themes/dimsum` to `themes/<id>`, change its `index.js`, `data.js` and `art.js` (anything you don't draw can fall through to another theme's art), and add the id to `GAMES` in `js/main.js` and `js/ui.js`.
 
 ## Adding a menu item
 
-1. Add any new ingredient to `INGREDIENTS` in `data.js`.
+1. Add any new ingredient to `INGREDIENTS` in the theme's `data.js`.
 2. Add the item to `MENU` and `MENU_ORDER`, with a `level` if it should open up later.
 3. Add an appliance with `makes: '<item>'` to `APPLIANCES` (and `APPLIANCE_SHOP` if it can be bought).
-4. Draw it: a case in `drawStation` and an icon in `drawIcon` (`art.js`).
+4. Draw it: a case in `station()` and an icon in `icon()` in the theme's `art.js`. For learning mode, give the dish `jp` (romanisation) and `m` (measure word).
 
 ## Saving
 

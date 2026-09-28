@@ -23,6 +23,8 @@ document.title = theme.meta.name;
 document.documentElement.dataset.game = gameId;
 document.querySelector('.brand .zh').textContent = theme.meta.brandZh;
 document.querySelector('.brand .en').textContent = theme.meta.brandEn;
+$('trayHead').firstChild.textContent = theme.meta.passZh;
+$('trayHead').childNodes[1].textContent = theme.meta.passName + ' ';
 const canvas = $('game'), ctx = canvas.getContext('2d'), stage = $('stage');
 
 let S = null, R = null, phase = 'title';

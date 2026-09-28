@@ -14,7 +14,8 @@ const world = await import('../js/world.js');
 
 const days = Number(process.argv[2] || 3), style = process.argv[3] || 'casual';
 const S = fresh(); world.syncKitchen(S);
-sim.placeStockOrder(S, null, { ice: 1, butter: 1 });
+{ const first = {}; for (const [k, m] of Object.entries(MENU)) if ((m.level || 1) === 1) for (const i of Object.keys(m.recipe)) if (!S.stock[i]) first[i] = 1;
+  sim.placeStockOrder(S, null, first); }
 
 function stationFor(item){ return S.kitchen.find(k => APPLIANCES[k.type].makes === item); }
 function placeStation(type){
@@ -53,7 +54,9 @@ function shop(){
   outer: for (let y = 2; y < world.DH - 1 && world.seatReport(S).filter(r => r.ok).length < want && S.money > 900; y += 2)
     for (let x = 1; x < world.diningW(S) - 1; x += 3){
       const snap = S.dining.items.length, ok0 = world.seatReport(S).filter(r => r.ok).length;
-      const add = [{ type: 'foldTable', x, y, dir: 'S' }, { type: 'redStool', x: x - 1, y, dir: 'E' }, { type: 'redStool', x: x + 1, y, dir: 'W' }];
+      const cheapest = kind => Object.entries(DECOR).filter(([, d]) => d.kind === kind && !d.level && !d.hidden).sort((a, b) => a[1].price - b[1].price)[0][0];
+      const T = cheapest('table'), C = cheapest('seat');
+      const add = [{ type: T, x, y, dir: 'S' }, { type: C, x: x - 1, y, dir: 'E' }, { type: C, x: x + 1, y, dir: 'W' }];
       if (add.some(a => world.diningProblem(S, a, a.x, a.y))) continue;
       add.forEach((a, i) => S.dining.items.push({ id: 8000 + snap + i, ...a }));
       if (world.seatReport(S).filter(r => r.ok).length < ok0 + 2 || world.seatReport(S).some(r => !r.ok)){ S.dining.items.length = snap; continue; }
@@ -76,16 +79,16 @@ for (let d = 0; d < days; d++){
     if (style === 'perfect' || R.t >= nextLook){
       nextLook = R.t + 1.5 + Math.random() * 1.5;
       const have = {}; for (const t of R.tray) have[t.item] = (have[t.item] || 0) + 1;
-      for (const q of R.queue) have[q.item] = (have[q.item] || 0) + 1;
+      for (const q of R.queue) have[q.item] = (have[q.item] || 0) + (MENU[q.item].batch || 1);
       const tickets = R.orders.filter(o => !o.sent).sort(style === 'perfect' ? (a, b) => a.deadline - b.deadline : (a, b) => a.no - b.no);
       for (const o of (style === 'perfect' ? tickets : tickets.slice(0, 2))){
         for (const [it, n] of Object.entries(o.items)){
           const short = n - (have[it] || 0);
-          for (let i = 0; i < short && R.queue.length < 5; i++){
+          for (let i = 0; i < Math.ceil(short / (MENU[it].batch || 1)) && R.queue.length < 5; i++){
             const st = stationFor(it);
             if (!st) break;
             const r = sim.clickStation(S, R, st, false);
-            if (r.added) have[it] = (have[it] || 0) + 1; else break;
+            if (r.added) have[it] = (have[it] || 0) + (MENU[it].batch || 1); else break;
           }
           have[it] = Math.max(0, (have[it] || 0) - n);
         }
@@ -98,7 +101,7 @@ for (let d = 0; d < days; d++){
   }
   const s = R.stats, res = R.results;
   totalStars += res.stars;
-  console.log(`Day ${String(S.day).padStart(2)}: L${sim.level(S)} ★${res.stars} (${S.stars}) served ${s.served}, walkouts ${s.walkouts}, lost ${s.lost}, sales+tips ${sim.fmtMoney(s.revenue + s.tips)} / target ${sim.fmtMoney(res.target.n)}, cash ${sim.fmtMoney(S.money)}, pop ${Math.round(S.popularity)}, menu ${S.unlocked.length}`);
+  console.log(`Day ${String(S.day).padStart(2)}: L${sim.level(S)} ★${res.stars} (${S.stars}) served ${s.served}, walkouts ${s.walkouts}, waste ${sim.fmtMoney(s.waste)}, lost ${s.lost}, sales+tips ${sim.fmtMoney(s.revenue + s.tips)} / target ${sim.fmtMoney(res.target.n)}, cash ${sim.fmtMoney(S.money)}, pop ${Math.round(S.popularity)}, menu ${S.unlocked.length}`);
   S.day++;
 }
 console.log(`\n${style}: ${totalStars} stars in ${days} days, level ${sim.level(S)}`);

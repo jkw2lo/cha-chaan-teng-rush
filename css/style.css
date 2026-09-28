@@ -512,3 +512,4 @@ body.dragging, body.dragging *{cursor:grabbing !important; user-select:none}
 .ti.learn .lzh{font-size:16px}
 .ti.learn em{position:static; order:-1; justify-self:end; font-size:13px; line-height:1; margin-bottom:-4px}
 .ti.learn.known .lzh{font-size:20px; padding-top:2px}
+.card.banquet{border-top:4px solid #b3261e} .card.teahouse{border-top:4px solid #9a6a3e}

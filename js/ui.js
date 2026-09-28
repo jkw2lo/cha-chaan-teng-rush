@@ -112,6 +112,7 @@ export function renderSide(S, R){
     th += `<span class="qslot pass" title="${MENU[t.item].name}, ${secs(t.fresh - R.t)} before it’s wasted"><img src="${icon(t.item)}" alt="${MENU[t.item].name}"><b>${i + 1}</b><i class="${f > .5 ? 'ok' : f > .25 ? 'warn' : 'late'}" style="width:${Math.round(f * 100)}%"></i></span>`;
   }
   setHTML('tray', th);
+  $('tray').style.gridTemplateColumns = `repeat(${PASS_MAX}, ${PASS_MAX > 5 ? 44 : 58}px)`;   // a trolley has more spots than a hatch
   $('trayHead').classList.toggle('full', tray.length >= PASS_MAX);
 
   // today
@@ -229,7 +230,7 @@ export function renderEditor(S, ui){
     cards = expandCard + items + floorCards;
   }
   const filters = kitchen ? '' : `<div class="filters">
-      ${['all', 'old', 'simple', 'modern'].map(s => `<button data-style="${s}" class="${E.style === s ? 'on' : ''}">${s === 'all' ? 'All styles' : `${STYLES[s].zh} ${STYLES[s].name}`}</button>`).join('')}
+      ${['all', ...Object.keys(STYLES)].map(s => `<button data-style="${s}" class="${E.style === s ? 'on' : ''}">${s === 'all' ? 'All styles' : `${STYLES[s].zh} ${STYLES[s].name}`}</button>`).join('')}
       <span class="sep"></span>
       ${['all', 'table', 'seat', 'block', 'ceiling', 'wall', 'floor'].map(c => `<button data-cat="${c}" class="${E.cat === c ? 'on' : ''}">${c === 'all' ? 'Everything' : kindName(c)}</button>`).join('')}
     </div>`;

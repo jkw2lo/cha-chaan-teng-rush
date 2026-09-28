@@ -1,6 +1,6 @@
 // One day of trading. `S` is the saved game, `R` is today's run.
 import { DAY_SECONDS, OPEN_HOUR, CLOSE_HOUR, QUEUE_MAX, PASS_MAX, GOALS, salesTarget, TARGET_REWARD, GOAL_REWARD, WALK_SPEED, CUSTOMER_SPEED, WAITER_SPEED,
-         WALKOUT_PENALTY, MENU, MENU_ORDER, INGREDIENTS, APPLIANCES, DECOR, BASE_PACKS, itemLevel, levelOf, MAX_LEVEL, KNOWN_AFTER, READING_BONUS } from './data.js';
+         WALKOUT_PENALTY, MENU, MENU_ORDER, INGREDIENTS, APPLIANCES, DECOR, BASE_PACKS, itemLevel, levelOf, MAX_LEVEL, KNOWN_AFTER, READING_BONUS, THEME } from './data.js';
 import { ambience, ambienceEffect } from './ambience.js';
 import { DIRS, HATCH, key, accessOf, bfs, inDining, inKitchen, kitchenBlocked, diningBlocked,
          doorCell, seatReport } from './world.js';
@@ -29,7 +29,7 @@ export function pickGoals(S){
   const pool = GOALS.filter(g => !g.needs || S.unlocked.includes(g.needs));
   const chosen = [];
   while (chosen.length < 2 && pool.length) chosen.push(pool.splice(Math.floor(rnd() * pool.length), 1)[0]);
-  return { target: salesTarget(S.day, level(S)), list: chosen.map(g => ({ id: g.id, n: g.n(S.day) })) };
+  return { target: Math.round(salesTarget(S.day, level(S)) * (THEME?.meta.targetScale || 1) / 50) * 50, list: chosen.map(g => ({ id: g.id, n: g.n(S.day) })) };
 }
 const statOf = (R, path) => path.split('.').reduce((o, k) => (o || {})[k] || 0, R.stats);
 // Where each target stands right now. `done` for a max-goal means "still within the limit".
@@ -51,7 +51,7 @@ export function fmtClock(h){
 }
 export const fmtMoney = n => (n < 0 ? '−$' : '$') + Math.abs(Math.round(n)).toLocaleString('en-US');
 export const servingCost = item => Math.max(1, Math.round(Object.entries(MENU[item].recipe)
-  .reduce((sum, [i, n]) => sum + INGREDIENTS[i].cost / INGREDIENTS[i].pack * n, 0)));
+  .reduce((sum, [i, n]) => sum + INGREDIENTS[i].cost / INGREDIENTS[i].pack * n, 0) / (MENU[item].batch || 1)));
 
 const emit = (R, type, data) => { if (R && R.events) R.events.push({ type, data }); };
 function say(R, text, tone = 'info'){ R.feed.unshift({ text, tone, t: R.t }); R.feed.length = Math.min(R.feed.length, 30); }
@@ -196,15 +196,18 @@ function updateCook(S, R, dt){
   if (A.phase === 'cook'){
     A.cookLeft -= dt;
     if (A.cookLeft > 0) return;
-    if (R.tray.length >= PASS_MAX){                       // nowhere to put it: wait for space on the pass
+    const batch = MENU[R.queue[0].item].batch || 1;      // steamers make several baskets per job
+    // A trolley (dim sum) sheds its oldest basket nobody's waiting for, rather than jamming the kitchen.
+    if (R.tray.length + batch > PASS_MAX && THEME && THEME.meta.passOverflow === 'discard') makeRoom(S, R, R.tray.length + batch - PASS_MAX);
+    if (R.tray.length + batch > PASS_MAX){                // nowhere to put it: wait for space on the pass
       if (!A.blocked){ A.blocked = true; toast(R, 'The pass is full. The cook is waiting for space.', 'warn'); }
       A.cookLeft = 0; return;
     }
     A.blocked = false;
     const q = R.queue.shift();
-    R.tray.push({ id: uid++, item: q.item, made: R.t, fresh: R.t + MENU[q.item].fresh, total: MENU[q.item].fresh });
+    for (let i = 0; i < batch; i++) R.tray.push({ id: uid++, item: q.item, made: R.t, fresh: R.t + MENU[q.item].fresh, total: MENU[q.item].fresh });
     emit(R, 'ready');
-    R.stats.made++;
+    R.stats.made += batch;
     A.phase = 'idle';
   }
 }
@@ -321,6 +324,13 @@ export function passClaims(R){
     claims.set(o.id, got);
   }
   return claims;
+}
+function makeRoom(S, R, need){
+  const claims = passClaims(R), claimed = {};
+  for (const got of claims.values()) for (const [it, n] of Object.entries(got)) claimed[it] = (claimed[it] || 0) + n;
+  const count = {};
+  const spare = [...R.tray].sort((a, b) => a.made - b.made).filter(t => { count[t.item] = (count[t.item] || 0) + 1; return count[t.item] > (claimed[t.item] || 0); });
+  for (const t of spare.slice(0, need)){ R.tray.splice(R.tray.indexOf(t), 1); wasteTray(S, R, t, 'cleared off the trolley'); }
 }
 function allocate(S, R){
   const claims = passClaims(R);
