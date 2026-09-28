@@ -1,8 +1,10 @@
 # Cha Chaan Teng Rush
 
+**Play it:** https://jkw2lo.github.io/cha-chaan-teng-rush/
+
 A cooking and restaurant-management game set in a Hong Kong cha chaan teng (茶餐廳). You run the kitchen during a 12-minute day, keep the stock up, and spend the takings on furniture, a bigger dining room and faster appliances between days.
 
-Plain HTML, CSS and JS modules. No build step and no dependencies. It runs in any modern browser and can be served as a static site (GitHub Pages works as is: serve the repo root).
+Plain HTML, CSS and JS modules. No build step and no dependencies. It runs in any modern browser and is served as a static site. GitHub Pages serves `main` directly, so pushing is deploying.
 
 ## Running it locally
 
