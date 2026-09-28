@@ -1,8 +1,8 @@
 // Persistent progress (saved between days). Anything that only matters during
 // a single day lives in the run object in sim.js instead.
-import { STARTING, INGREDIENTS } from './data.js';
+import { STARTING, INGREDIENTS, THEME } from './data.js';
 
-const SAVE_KEY = 'cct-rush-save-v1';
+const saveKey = () => THEME.meta.saveKey;
 let nextId = 100;
 export const newId = () => ++nextId;
 
@@ -18,26 +18,12 @@ export function newGame(){
     kitchenSize: 0,
     relaxed: false,
     stars: 0,
-    kitchen: [
-      { id: 1, type: 'pass',      x: 3, y: 6,  dir: 'S' },
-      { id: 2, type: 'hotTea',    x: 0, y: 7,  dir: 'E' },
-      { id: 3, type: 'icedTea',   x: 0, y: 9,  dir: 'E' },
-      { id: 4, type: 'bun',       x: 6, y: 6,  dir: 'S' },
-      { id: 5, type: 'butterBun', x: 7, y: 9,  dir: 'W' },
-      { id: 6, type: 'shelf',     x: 7, y: 11, dir: 'W' },
-    ],
+    kitchen: THEME.data.LAYOUT.kitchen.map(k => ({ ...k })),
     dining: {
-      floor: 'concrete',
-      ownedFloors: ['concrete'],
-      items: [
-        { id: 10, type: 'foldTable', x: 2, y: 3, dir: 'S' },
-        { id: 11, type: 'foldTable', x: 5, y: 3, dir: 'S' },
-        { id: 12, type: 'redStool',  x: 1, y: 3, dir: 'E' },
-        { id: 13, type: 'redStool',  x: 3, y: 3, dir: 'W' },
-        { id: 14, type: 'redStool',  x: 4, y: 3, dir: 'E' },
-        { id: 15, type: 'redStool',  x: 6, y: 3, dir: 'W' },
-      ],
-      wall: [{ id: 20, type: 'menuStrips', x: 1 }],
+      floor: THEME.data.LAYOUT.floor,
+      ownedFloors: [THEME.data.LAYOUT.floor],
+      items: THEME.data.LAYOUT.items.map(i => ({ ...i })),
+      wall: THEME.data.LAYOUT.wall.map(w => ({ ...w })),
     },
     history: [],
   };
@@ -49,11 +35,11 @@ function syncIds(S){
 }
 
 export function save(S){
-  try { localStorage.setItem(SAVE_KEY, JSON.stringify(S)); } catch (e) { /* storage unavailable: play continues unsaved */ }
+  try { localStorage.setItem(saveKey(), JSON.stringify(S)); } catch (e) { /* storage unavailable: play continues unsaved */ }
 }
 export function load(){
   try {
-    const raw = localStorage.getItem(SAVE_KEY);
+    const raw = localStorage.getItem(saveKey());
     if (!raw) return null;
     const S = JSON.parse(raw);
     if (S.version !== 1) return null;
@@ -64,6 +50,6 @@ export function load(){
   } catch (e) { return null; }
 }
 export function clearSave(){
-  try { localStorage.removeItem(SAVE_KEY); } catch (e) {}
+  try { localStorage.removeItem(saveKey()); } catch (e) {}
 }
 export const fresh = () => { const S = newGame(); syncIds(S); return S; };

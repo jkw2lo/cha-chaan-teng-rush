@@ -1,5 +1,5 @@
 // DOM panels around the canvas. Everything here reads state; main.js wires the buttons.
-import { MENU, MENU_ORDER, INGREDIENTS, APPLIANCES, APPLIANCE_SHOP, DECOR, STYLES, DINING_SIZES, DAY_SECONDS, QUEUE_MAX, PASS_MAX, AMBIENCE_MAX, TARGET_REWARD, GOAL_REWARD, LEVEL_STARS, itemLevel, KITCHEN_SIZES, MAX_LEVEL } from './data.js';
+import { MENU, MENU_ORDER, INGREDIENTS, APPLIANCES, APPLIANCE_SHOP, DECOR, STYLES, DINING_SIZES, DAY_SECONDS, QUEUE_MAX, PASS_MAX, AMBIENCE_MAX, TARGET_REWARD, GOAL_REWARD, LEVEL_STARS, itemLevel, KITCHEN_SIZES, MAX_LEVEL, THEME } from './data.js';
 import { level, itemReady, hasStation, visibleIngredients, clockHour, fmtClock, fmtMoney, dayProgress, capacity, shelves, packsRoom, incoming, passClaims, goalStatus, pickGoals } from './sim.js';
 import { ambience, appealGain, ambienceEffect } from './ambience.js';
 import { iconURL } from './art.js';
@@ -255,9 +255,9 @@ export function closeModal(){ $('modal').hidden = true; }
 
 export function titleHTML(hasSave){
   return `<div class="title">
-    <div class="sign">旺記茶餐廳</div>
-    <h1>Cha Chaan Teng Rush</h1>
-    <p>You've taken over a tiny cha chaan teng. Brew the milk tea, warm the pineapple buns, keep the shelves stocked, and turn it into the busiest spot on the street.</p>
+    <div class="sign">${THEME.meta.sign.replace(/ /g, '')}</div>
+    <h1>${THEME.meta.name}</h1>
+    <p>${THEME.meta.intro}</p>
     <ul class="how">
       <li><b>Click a station</b> to give the cook a job. Keep clicking to line up more (up to ${QUEUE_MAX}); one more click clears that station’s jobs. Right-click clears them straight away.</li>
       <li>Finished items wait on the <b>pass</b> (it holds ${PASS_MAX}). Tickets go out in the order they came in, as soon as everything on them is ready.</li>

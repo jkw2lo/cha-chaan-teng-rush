@@ -77,24 +77,23 @@ export function stopSizzle(){
   g.gain.linearRampToValueAtTime(0, ac.currentTime + .2); src.stop(ac.currentTime + .25);
 }
 
-// ---------- Cantonese call-outs ----------
-const NUM = ['', '一', '兩', '三', '四', '五'];
-const MEASURE = { hotTea: '杯', icedTea: '杯', lemonTea: '杯', yuenyeung: '杯', bun: '個', butterBun: '個', porkchopBun: '個', eggTart: '個',
-                  condensedToast: '份', frenchToast: '份', noodleSpam: '碗', satayBeef: '碗', beefChowFun: '碟' };
+// ---------- spoken call-outs, in the theme's language ----------
+import { THEME } from './data.js';
 let voice = null;
 function pickVoice(){
-  if (!('speechSynthesis' in window)) return null;
+  if (!('speechSynthesis' in window) || !THEME) return null;
+  const want = THEME.meta.lang.voice.toLowerCase(), base = want.split('-')[0];
   const vs = speechSynthesis.getVoices();
-  return vs.find(v => /zh[-_]HK|yue/i.test(v.lang)) || null;
+  return vs.find(v => v.lang.replace('_', '-').toLowerCase() === want) || (base === 'zh' ? vs.find(v => /yue/i.test(v.lang)) : vs.find(v => v.lang.toLowerCase().startsWith(base))) || null;
 }
 if ('speechSynthesis' in window) speechSynthesis.onvoiceschanged = () => { voice = pickVoice(); };
-export const hasCantoneseVoice = () => !!(voice || (voice = pickVoice()));
-
-// items: { itemKey: count }, names: itemKey -> Chinese name
-export function callOut(items, names){
-  if (mode !== 'all' || !hasCantoneseVoice()) return;
-  const text = Object.entries(items).map(([k, n]) => `${n > 1 ? NUM[Math.min(n, 5)] + (MEASURE[k] || '個') : ''}${names[k]}`).join('，');
+export const hasVoice = () => !!(voice || (voice = pickVoice()));
+export const hasCantoneseVoice = hasVoice;
+export function speak(text, rate = 1.1){
+  if (mode !== 'all' || !hasVoice()) return;
   const u = new SpeechSynthesisUtterance(text);
-  u.voice = voice; u.lang = voice.lang; u.rate = 1.15; u.volume = .8;
+  u.voice = voice; u.lang = voice.lang; u.rate = rate; u.volume = .8;
   speechSynthesis.speak(u);
 }
+// items: { itemKey: count }
+export const callOut = items => speak(THEME.callout(items), 1.15);

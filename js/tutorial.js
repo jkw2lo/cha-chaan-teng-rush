@@ -1,12 +1,13 @@
 // A short walkthrough of the screen for new games: dims everything, spotlights one area
 // at a time and explains it. Back / Next / Skip, arrow keys and Esc work too.
 
+import { THEME } from './data.js';
 const $ = s => document.querySelector(s);
 
 // target: a CSS selector, or a function returning a DOMRect-like {left, top, width, height}
 export function buildSteps(kitchenRect){
   return [
-    { target: '#stage', title: 'Welcome to your cha chaan teng',
+    { target: '#stage', title: `Welcome to your ${THEME.meta.place}`,
       text: 'The dining room is at the back and the kitchen is at the front. Customers walk in, sit down and order. You run the kitchen.' },
     { target: '#rail', title: 'Order tickets',
       text: 'Every order hangs here with a timer. Serve it before the bar runs out or the customer walks out. Faster service means bigger tips.' },

@@ -474,3 +474,17 @@ body.dragging, body.dragging *{cursor:grabbing !important; user-select:none}
 .sidetop .brand .zh{font-size:18px} .sidetop .brand .en{font-size:14px}
 .brandbtns{flex-wrap:nowrap}
 .brandbtns .tourbtn{padding:3px 8px; font-size:11px; white-space:nowrap}
+/* compact inventory, roomier: bigger tiles, names wrap instead of being cut off */
+#inv.compact{gap:8px}
+#inv.compact .inv{grid-template-columns:28px 1fr; grid-template-areas:'chip nm' 'qty qty' 'bar bar' 'note qo'; padding:9px 10px 10px; row-gap:6px; column-gap:8px; align-items:center}
+#inv.compact .inv .chip{width:28px; height:28px; font-size:15px !important; align-self:center}
+#inv.compact .inv .nm{font-size:13px; line-height:1.2; white-space:normal; overflow:visible; text-overflow:clip}
+#inv.compact .inv .qty{font-size:20px}
+#inv.compact .inv .qty small{font-size:12px}
+#inv.compact .inv .bar{height:7px}
+#inv.compact .inv .invnote{font-size:11px; white-space:normal; line-height:1.2}
+#inv.compact .inv .qo{justify-self:end; padding:3px 8px; font-size:11px}
+#inv.compact .inv .qo small{display:inline}
+#inv.compact .inv .invnote:empty{display:block}
+#inv.compact .inv{grid-template-columns:28px 1fr auto; grid-template-areas:'chip nm nm' 'qty qty qo' 'bar bar bar' 'note note note'}
+#inv.compact .inv .invnote:empty{display:none}

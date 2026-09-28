@@ -1,17 +1,7 @@
 // Opening screen: a Hong Kong street at night. Neon signs, tenement blocks with air-con units
 // and laundry poles, a ding-ding tram and a red taxi going past. Click to roll the shutter up.
 
-const SIGNS = [
-  // text, colour, left %, top %, vertical, size (vh)
-  ['冰室',   '#ff5fa2', 6,  14, true,  6.2],
-  ['燒臘',   '#ff3b30', 16, 30, true,  5.2],
-  ['涼茶',   '#39e07a', 83, 12, true,  5.6],
-  ['麻雀',   '#5ad1ff', 92, 34, true,  5.0],
-  ['粥麵',   '#ffd23f', 73, 40, false, 4.2],
-  ['士多',   '#ffa53b', 25, 8,  false, 3.8],
-  ['奶茶',   '#ff8fd0', 64, 7,  false, 4.4],
-  ['菠蘿油', '#ffe45c', 3,  50, false, 3.4],
-];
+import { THEME } from './data.js';
 
 let raf = 0;
 function seeded(seed){ let x = seed; return () => { x = (x * 16807) % 2147483647; return (x - 1) / 2147483646; }; }
@@ -120,11 +110,11 @@ export function showSplash(onDone){
   el.className = 'splash';
   el.innerHTML = `
     <canvas class="splash-city"></canvas>
-    ${SIGNS.map(([txt, col, x, y, vert, size], i) => `<div class="neon ${vert ? 'vert' : ''}" style="--c:${col}; left:${x}%; top:${y}%; font-size:${size}vh; animation-delay:${(i * 1.7) % 5}s">${txt}</div>`).join('')}
+    ${THEME.meta.splash.signs.map(([txt, col, x, y, vert, size], i) => `<div class="neon ${vert ? 'vert' : ''}" style="--c:${col}; left:${x}%; top:${y}%; font-size:${size}vh; animation-delay:${(i * 1.7) % 5}s">${txt}</div>`).join('')}
     <div class="splash-title">
-      <div class="neon-board"><span class="zh">茶餐廳</span></div>
-      <div class="rush">RUSH</div>
-      <p class="tag"><span>一杯奶茶，一日開始。</span>Brew the milk tea. Feed the street. Survive the lunch rush.</p>
+      <div class="neon-board"><span class="zh">${THEME.meta.splash.board}</span></div>
+      <div class="rush">${THEME.meta.splash.word}</div>
+      <p class="tag"><span>${THEME.meta.splash.tagZh}</span>${THEME.meta.splash.tag}</p>
     </div>
     <button class="splash-go" type="button"><span class="zh">開舖</span> Click anywhere to open the shutters</button>
     <div class="shutter-edge"></div>`;

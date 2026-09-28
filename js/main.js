@@ -1,4 +1,4 @@
-import { DECOR, APPLIANCES, MENU, INGREDIENTS, MENU_ORDER } from './data.js';
+import { DECOR, APPLIANCES, MENU, INGREDIENTS, MENU_ORDER, useTheme, THEME } from './data.js';
 import { fresh, load, save, clearSave } from './state.js';
 import { newRun, tick, clickStation, placeStockOrder, checkUnlocks, fmtMoney, itemReady, hasStation, maxed } from './sim.js';
 import { draw, hitTest, billboardHit, invalidateStatic, viewCentre, computeView } from './render.js';
@@ -12,6 +12,17 @@ import { buildSteps, runTour } from './tutorial.js';
 import { DH, KW, KH, syncKitchen } from './world.js';
 
 const $ = id => document.getElementById(id);
+
+// ---------- which restaurant? ?game=<theme id> (defaults to the cha chaan teng) ----------
+const GAMES = ['cct', 'dimsum'];
+const gameId = GAMES.includes(new URLSearchParams(location.search).get('game')) ? new URLSearchParams(location.search).get('game') : 'cct';
+const theme = await import(`../themes/${gameId}/index.js`);
+useTheme(theme);
+A.applyPalette(theme.meta.palette);
+document.title = theme.meta.name;
+document.documentElement.dataset.game = gameId;
+document.querySelector('.brand .zh').textContent = theme.meta.brandZh;
+document.querySelector('.brand .en').textContent = theme.meta.brandEn;
 const canvas = $('game'), ctx = canvas.getContext('2d'), stage = $('stage');
 
 let S = null, R = null, phase = 'title';
@@ -44,10 +55,9 @@ function showBanner(){
   const b = $('banner');
   if (phase !== 'prep' || ui.edit){ b.hidden = true; return; }
   const tips = [];
-  if (!S.unlocked.includes('icedTea')) tips.push('No ice yet: order some to add 凍奶茶 iced milk tea to the menu.');
-  if (!S.unlocked.includes('butterBun') && S.unlocked.includes('bun')) tips.push('Order butter to unlock 菠蘿油.');
-  for (const m of MENU_ORDER) if (itemReady(S, m) && !S.unlocked.includes(m) && (MENU[m].level || 1) > 1){
-    tips.push(hasStation(S, m) ? `Order ${Object.keys(MENU[m].recipe).filter(i => S.stock[i] <= 0).map(i => INGREDIENTS[i].name.toLowerCase()).join(', ')} to start selling ${MENU[m].zh}.` : `Buy a ${Object.values(APPLIANCES).find(a => a.makes === m && !a.pro).name.toLowerCase()} in the kitchen to start selling ${MENU[m].zh}.`);
+  for (const m of MENU_ORDER) if (itemReady(S, m) && !S.unlocked.includes(m)){
+    const need = Object.keys(MENU[m].recipe).filter(i => S.stock[i] <= 0).map(i => INGREDIENTS[i].name.toLowerCase());
+    tips.push(hasStation(S, m) ? `Order ${need.join(', ')} to add ${MENU[m].zh} ${MENU[m].name.toLowerCase()} to the menu.` : `Buy a ${Object.values(APPLIANCES).find(a => a.makes === m && !a.pro).name.toLowerCase()} in the kitchen to start selling ${MENU[m].zh}.`);
   }
   const low = Object.entries(INGREDIENTS).filter(([k]) => S.stock[k] > 0 && S.stock[k] < 6).map(([, i]) => i.name.toLowerCase());
   if (low.length) tips.push(`Low on ${low.join(', ')}.`);
@@ -449,9 +459,8 @@ function refreshEditorCash(){ if (lastCash !== S.money){ lastCash = S.money; ref
 // ---------- sound ----------
 const HOT = new Set(['wok', 'wokPro', 'fryer', 'fryerPro', 'griddle', 'griddlePro', 'noodlePot', 'noodlePotPro', 'satayPot', 'satayPotPro']);
 function playEvents(){
-  const names = Object.fromEntries(Object.entries(MENU).map(([k, m]) => [k, m.zh]));
   for (const e of R.events.splice(0)){
-    if (e.type === 'order') callOut(e.data, names);
+    if (e.type === 'order') callOut(e.data);
     else if (e.type === 'out') sfx.bell();
     else if (sfx[e.type]) sfx[e.type]();
   }

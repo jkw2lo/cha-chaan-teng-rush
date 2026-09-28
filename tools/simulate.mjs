@@ -4,6 +4,9 @@
 // casual:  looks up every ~2s, works tickets strictly in order without batching, restocks late,
 //          and between days buys the stations/shelves/rooms a player would.
 globalThis.localStorage = { getItem(){ return null; }, setItem(){}, removeItem(){} };
+const game = process.env.GAME || 'cct';
+const { useTheme } = await import('../js/data.js');
+useTheme(await import(`../themes/${game}/index.js`));
 const { fresh } = await import('../js/state.js');
 const sim = await import('../js/sim.js');
 const { APPLIANCES, MENU, INGREDIENTS, KITCHEN_SIZES, DINING_SIZES, DECOR } = await import('../js/data.js');
