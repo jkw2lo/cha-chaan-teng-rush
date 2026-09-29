@@ -157,6 +157,7 @@ addEventListener('keydown', e => {
   if (e.key === ' ' && started && !run.over && !phoneOpen){ e.preventDefault(); togglePause(); }
   else if (e.key === 'Escape' && phoneOpen) closePhone();
   else if ((e.key === 'p' || e.key === 'P') && playing()) phoneOpen ? closePhone() : openPhone();
+  else if ((e.key === 'f' || e.key === 'F') && !phoneOpen) cycleSpeed();
 });
 
 // ---------- the phone ----------
@@ -198,6 +199,17 @@ $('phone').addEventListener('pointerdown', e => { if (e.target.id === 'phone') c
 // ---------- buttons ----------
 function togglePause(){ paused = !paused; $('pauseBtn').textContent = paused ? 'Resume' : 'Pause'; $('pauseBtn').setAttribute('aria-pressed', paused); }
 $('pauseBtn').onclick = () => { if (started && !run.over) togglePause(); };
+// Game speed: everything (customers, timers, deliveries) runs faster. Remembered per browser.
+const SPEEDS = [1, 1.5, 2, 3];
+let speed = 1;
+try { speed = SPEEDS.includes(+localStorage.getItem('counter-rush-speed')) ? +localStorage.getItem('counter-rush-speed') : 1; } catch (e) {}
+function setSpeed(v){
+  speed = v; $('speedBtn').textContent = `${v}×`; $('speedBtn').classList.toggle('fast', v > 1);
+  try { localStorage.setItem('counter-rush-speed', v); } catch (e) {}
+}
+const cycleSpeed = () => setSpeed(SPEEDS[(SPEEDS.indexOf(speed) + 1) % SPEEDS.length]);
+$('speedBtn').onclick = cycleSpeed;
+setSpeed(speed);
 const soundLabel = () => ({ all: 'Sound on', sfx: 'Voice off', off: 'Sound off' })[soundMode()];
 $('soundBtn').textContent = soundLabel();
 $('soundBtn').onclick = () => { unlockAudio(); cycleSound(); $('soundBtn').textContent = soundLabel(); };
@@ -285,7 +297,7 @@ function showSummary(){
     if (hit) sfx.levelUp();
     head = `<span class="zh">收工</span>${hit ? `Day ${n} cleared!` : `Day ${n}: closing time`}`;
     big = `<p class="stars" aria-label="${st} of 3 stars">${'★'.repeat(st)}<span>${'★'.repeat(3 - st)}</span></p>
-      <p class="big">${m(tk)} taken <small>of a $${run.target} target · ${run.cfgLabel}</small></p>`;
+      <p class="big">${m(tk)} taken <small>of a $${run.target} target · ${run.cfgLabel}${run.maxSpeed > 1 ? ` · played at up to ${run.maxSpeed}×` : ''}</small></p>`;
     if (hit && !wasOpen) note = n < DAYS.length ? `<p class="unlock">Day ${n + 1} is open: ${DAYS[n].note.toLowerCase()}.</p>` : `<p class="unlock">${ENDLESS.zh} ${ENDLESS.name} is open: the endless shift.</p>`;
     else if (!hit) note = `<p class="muted">You need $${run.target} for a star. ${run.walkouts > 2 ? 'Customers walked out: try starting drinks and toast before orders pile up.' : 'Keep every station busy.'}</p>`;
     next = hit ? (n < DAYS.length ? n + 1 : 'endless') : null;
@@ -353,7 +365,7 @@ const HISTORY_KEY = 'counter-rush-history';
 function loadHistory(){ try { return JSON.parse(localStorage.getItem(HISTORY_KEY) || '[]'); } catch (e) { return []; } }
 function recordRound(){
   const h = loadHistory();
-  h.unshift({ when: Date.now(), day: run.endless ? `${ENDLESS.zh} L${run.level}` : `Day ${run.cfg.day}`, label: run.cfgLabel, target: run.target, takings: S.takings(run), served: run.served, customers: run.customers,
+  h.unshift({ when: Date.now(), day: run.endless ? `${ENDLESS.zh} L${run.level}` : `Day ${run.cfg.day}`, label: run.cfgLabel + (run.maxSpeed > 1 ? ` · ${run.maxSpeed}×` : ''), target: run.target, takings: S.takings(run), served: run.served, customers: run.customers,
     walkouts: run.walkouts, messes: run.messes, burnt: run.burnt, stars: S.stars(run) });
   try { localStorage.setItem(HISTORY_KEY, JSON.stringify(h.slice(0, 8))); } catch (e) {}
   return h.slice(0, 8);
@@ -372,7 +384,8 @@ function frame(now){
   // ask for the next frame first: if anything below throws, the counter keeps running instead of freezing
   requestAnimationFrame(frame);
   // small steps, so a slow frame doesn't skip a timer's green window; a long gap (a hidden tab) is dropped
-  const dt = Math.min(.25, (now - last) / 1000); last = now;
+  const dt = Math.min(.25, (now - last) / 1000) * speed; last = now;
+  if (playing()) run.maxSpeed = Math.max(run.maxSpeed || 1, speed);
   ui.t += dt;
   if (playing()){
     try {
