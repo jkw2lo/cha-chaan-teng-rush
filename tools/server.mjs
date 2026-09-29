@@ -13,12 +13,13 @@ const TYPES = {
 
 const server = createServer(async (req, res) => {
   const path = normalize(decodeURIComponent(req.url.split('?')[0])).replace(/^(\.\.[/\\])+/, '');
-  const file = join(ROOT, path === '/' ? 'index.html' : path);
+  const file = join(ROOT, path.endsWith('/') ? path + 'index.html' : path);   // /cct/ -> cct/index.html, like GitHub Pages
   try {
     const body = await readFile(file);
     res.writeHead(200, { 'Content-Type': `${TYPES[extname(file)] || 'application/octet-stream'}; charset=utf-8`, 'Cache-Control': 'no-store' });
     res.end(body);
-  } catch {
+  } catch (err) {
+    if (err.code === 'EISDIR'){ res.writeHead(301, { Location: req.url.replace(/(\?|$)/, '/$1') }); return res.end(); }   // /cct -> /cct/
     res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8' });
     res.end('Not found');
   }

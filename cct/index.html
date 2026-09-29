@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="en" data-game="cct">
+<!-- Generated from game.html by tools/pages.mjs. Edit game.html, then run: node tools/pages.mjs -->
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Cha Chaan Teng Rush</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Karla:wght@400;500;700&family=Noto+Serif+TC:wght@700;900&family=Zilla+Slab:wght@600;700&display=swap">
+<link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+<div id="app">
+  <aside class="side" aria-label="Your shop">
+    <section class="sidetop">
+      <div class="brandrow">
+        <div class="brand"><span class="zh">茶餐廳</span><span class="en">Rush</span></div>
+        <span class="brandbtns"><button id="learnBtn" type="button" class="tourbtn" title="Learning mode and your word list">學 Off</button><button id="soundBtn" type="button" class="tourbtn">Sound on</button><button id="tourBtn" type="button" class="tourbtn" title="Show the walkthrough again">? Tour</button></span>
+      </div>
+      <div class="day">
+        <div class="dayline"><b id="dayNo">Day 1</b><span id="clock"></span></div>
+        <div class="daybar"><i id="dayFill"></i></div>
+        <div class="dayends"><span>OPEN 07:00</span><span>CLOSE 18:00</span></div>
+      </div>
+      <div class="stats">
+        <div class="stat" id="lvlStat"><small>Level</small><b id="lvl"></b></div>
+        <div class="stat"><small>Cash</small><b id="money">$0</b></div>
+        <div class="stat"><small>Popularity</small><b id="pop" class="pop"></b></div>
+        <div class="stat" id="ambStat"><small>Ambience</small><b id="amb"></b></div>
+      </div>
+    </section>
+    <section class="panel">
+      <h2><span class="zh">今日</span>Today</h2>
+      <dl id="today" class="today"></dl>
+    </section>
+    <section class="panel">
+      <h2><span class="zh">目標</span>Today’s targets</h2>
+      <div id="goals" class="goals"></div>
+    </section>
+    <section class="panel invpanel" aria-label="Inventory">
+      <h2><span class="zh">存貨</span>Inventory</h2>
+      <p class="cap" id="capNote"></p>
+      <div id="inv"></div>
+      <button id="restockBtn2" type="button" class="wide">Order several at once</button>
+    </section>
+  </aside>
+
+  <div class="work">
+    <section class="cookbar" aria-label="Kitchen">
+      <section class="panel">
+        <h2><span class="zh">手頭</span>Cook’s queue</h2>
+        <div id="queue" class="queue"></div>
+      </section>
+      <section class="panel">
+        <h2 id="trayHead"><span class="zh">出餐</span>On the pass <span class="cap full-note">full: the cook waits</span></h2>
+        <div id="tray" class="queue"></div>
+      </section>
+      <section class="panel col-boost">
+        <h2><span class="zh">加油</span>Boosters</h2>
+        <div id="boosts" class="boosts"></div>
+      </section>
+      <section class="panel col-feed">
+        <h2><span class="zh">動態</span>Latest</h2>
+        <ul id="feed" class="feed"></ul>
+      </section>
+    </section>
+
+    <div class="railwrap">
+      <section class="rail" id="rail" aria-label="Order tickets"></section>
+      <div id="banner" class="banner" hidden></div>
+    </div>
+
+    <main class="main">
+      <div class="stage" id="stage">
+        <canvas id="game" aria-label="The restaurant: dining room at the back, kitchen at the front"></canvas>
+        <div class="controls">
+          <button id="pauseBtn" type="button" aria-pressed="false">Pause</button>
+          <button id="speedBtn" type="button" title="Game speed">1×</button>
+        </div>
+        <div class="zoomer" aria-label="Zoom">
+          <button id="zoomOut" type="button" title="Zoom out (−)" aria-label="Zoom out">−</button>
+          <button id="zoomIn" type="button" title="Zoom in (+)" aria-label="Zoom in">+</button>
+          <button id="zoomKitchen" type="button" title="Zoom in on the kitchen (K)">Kitchen view</button>
+          <button id="zoomAll" type="button" title="See the whole shop (0)">Whole shop</button>
+        </div>
+        <nav class="actions" aria-label="Shop">
+          <button id="restockBtn" type="button" class="act"><span class="zh">入貨</span>Restock</button>
+          <button id="kitchenBtn" type="button" class="act"><span class="zh">廚房</span>Kitchen</button>
+          <button id="diningBtn" type="button" class="act"><span class="zh">裝修</span>Dining room</button>
+          <button id="closeBtn" type="button" class="act danger"><span class="zh">收舖</span>Close</button>
+        </nav>
+        <div id="tip" class="tip" hidden></div>
+        <div id="itemBar" class="itembar" hidden></div>
+        <div id="toasts" class="toasts" aria-live="polite"></div>
+        <div id="drawer" class="drawer" hidden></div>
+        <div id="editor" class="editor" hidden></div>
+      </div>
+    </main>
+  </div>
+</div>
+
+  <div id="modal" class="modal" hidden><div class="card" id="modalCard" role="dialog" aria-modal="true"></div></div>
+</div>
+<script type="module" src="../js/main.js"></script>
+</body>
+</html>

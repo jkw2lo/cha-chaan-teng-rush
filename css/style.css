@@ -541,3 +541,11 @@ button.qslot{border:0; padding:0; background:#fff; cursor:pointer; font:inherit}
 .boost{min-width:176px}
 .col-feed{min-width:150px}
 .col-feed h2{white-space:nowrap}
+/* inventory: more breathing room now that the side panel scrolls on its own */
+.side .invpanel .inv{padding:10px 0; row-gap:6px}
+.side .invpanel .inv .nm{font-size:14.5px}
+.side .invpanel .inv .qty{font-size:22px}
+.side .invpanel .inv .bar{height:9px}
+.side .invpanel .inv .qo{padding:4px 9px}
+#inv.compact{gap:10px}
+#inv.compact .inv{padding:12px 11px 13px; row-gap:8px}

@@ -3,104 +3,166 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Cha Chaan Teng Rush</title>
+<title>Restaurant Rush</title>
+<meta name="description" content="Run a Hong Kong cha chaan teng or a dim sum teahouse, and pick up Cantonese as you cook. Japan coming soon.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Karla:wght@400;500;700&family=Noto+Serif+TC:wght@700;900&family=Zilla+Slab:wght@600;700&display=swap">
-<link rel="stylesheet" href="css/style.css">
+<script>
+  // old links (…/?game=dimsum) go straight to that restaurant's page
+  const g = new URLSearchParams(location.search).get('game');
+  if (g && /^[a-z]+$/.test(g)) location.replace(g + '/' + location.hash);
+</script>
+<style>
+  :root{
+    --night:#0c1024; --night2:#1b1433; --ink:#f4ecd8; --muted:#b8b0c8; --paper:#fbf6ea; --paper-ink:#2a221c;
+    --hk:#ff4f6d; --hk2:#ffb347; --jp:#6f8cff; --jp2:#ff5a4d; --gold:#f2d27a;
+    --slab:"Zilla Slab", Georgia, serif; --body:Karla, system-ui, sans-serif; --han:"Noto Serif TC", "Hiragino Mincho ProN", "Songti TC", serif;
+    color-scheme: dark;
+  }
+  *{box-sizing:border-box}
+  [hidden]{display:none !important}
+  html,body{margin:0; min-height:100%}
+  body{background:radial-gradient(ellipse at 50% 0%, #2a1a4a 0%, var(--night2) 35%, var(--night) 80%); color:var(--ink); font:16px/1.5 var(--body); min-height:100vh}
+  .wrap{max-width:1040px; margin:0 auto; padding-inline:20px; padding-block:48px 64px}
+  header{text-align:center; margin-bottom:36px}
+  .kicker{font:700 12px var(--body); letter-spacing:.18em; text-transform:uppercase; color:var(--muted); margin:0}
+  h1{font:700 clamp(40px, 7vw, 68px)/1 var(--slab); margin:10px 0 10px; letter-spacing:.02em;
+     text-shadow:0 0 8px rgba(255,255,255,.35), 0 0 24px rgba(111,140,255,.45)}
+  .lede{max-width:52ch; margin:0 auto; color:var(--muted); font-size:17px}
+  h2.q{font:700 22px var(--slab); text-align:center; margin:0 0 18px; color:var(--ink)}
+
+  /* step 1: regions */
+  .regions{display:grid; grid-template-columns:1fr 1fr; gap:22px}
+  .region{position:relative; border:0; cursor:pointer; text-align:left; color:var(--ink); border-radius:18px; padding:26px 26px 24px; min-height:250px;
+    display:flex; flex-direction:column; justify-content:flex-end; overflow:hidden; font:inherit;
+    background:linear-gradient(180deg, rgba(10,8,25,.1), rgba(10,8,25,.85)), var(--bg); box-shadow:0 10px 30px rgba(0,0,0,.4), inset 0 0 0 1px rgba(255,255,255,.08);
+    transition:transform .2s ease, box-shadow .2s ease}
+  .region:hover, .region:focus-visible{transform:translateY(-3px); box-shadow:0 16px 40px rgba(0,0,0,.5), inset 0 0 0 2px var(--c)}
+  .region:focus-visible{outline:none}
+  .region.hk{--c:var(--hk); --bg:repeating-linear-gradient(90deg, #1d1530 0 34px, #221938 34px 70px)}
+  .region.jp{--c:var(--jp); --bg:linear-gradient(#141a36, #1b1233)}
+  .board{position:absolute; top:22px; right:24px; font:900 64px/1 var(--han); color:#fff; padding:.14em .3em .2em; border:4px solid var(--c); border-radius:.14em;
+    text-shadow:0 0 6px #fff, 0 0 18px var(--c), 0 0 40px var(--c); box-shadow:0 0 16px var(--c), inset 0 0 14px var(--c); background:rgba(8,6,20,.6)}
+  .region.hk .board{writing-mode:vertical-rl; letter-spacing:.1em}
+  .lanterns{position:absolute; top:0; left:24px; display:flex; gap:22px}
+  .lantern{width:34px; height:44px; margin-top:26px; border-radius:40%; background:radial-gradient(circle at 50% 40%, #ffd9a0, var(--jp2) 60%, #8f1a14);
+    box-shadow:0 0 22px rgba(255,90,77,.7); position:relative}
+  .lantern::before{content:""; position:absolute; left:50%; top:-26px; width:2px; height:26px; background:#555}
+  .lantern:nth-child(2){margin-top:40px} .lantern:nth-child(3){margin-top:18px}
+  .region .name{font:700 32px/1.1 var(--slab)} .region .name span{font:900 26px var(--han); color:var(--c); margin-right:8px}
+  .region p{margin:6px 0 0; color:var(--muted); max-width:34ch}
+  .region .go{margin-top:14px; font:700 14px var(--body); color:var(--c)}
+
+  /* step 2: restaurants */
+  .back{background:none; border:0; color:var(--muted); font:600 14px var(--body); cursor:pointer; padding:0; margin-bottom:14px}
+  .back:hover{color:var(--ink)}
+  .rhead{display:flex; align-items:baseline; gap:12px; margin-bottom:18px}
+  .rhead h2{font:700 30px var(--slab); margin:0} .rhead h2 span{font:900 26px var(--han); margin-right:8px}
+  .rhead .lang{font:700 12px var(--body); letter-spacing:.08em; text-transform:uppercase; padding:4px 10px; border-radius:99px; border:1px solid currentColor}
+  .shops{display:grid; grid-template-columns:repeat(auto-fit, minmax(280px, 1fr)); gap:20px}
+  .shop{display:grid; grid-template-rows:auto 1fr auto; background:var(--paper); color:var(--paper-ink); border-radius:16px; overflow:hidden; text-decoration:none;
+    box-shadow:0 10px 28px rgba(0,0,0,.4); transition:transform .2s ease}
+  a.shop:hover, a.shop:focus-visible{transform:translateY(-3px); outline:none; box-shadow:0 14px 36px rgba(0,0,0,.5), 0 0 0 3px var(--gold)}
+  .shop .art{height:150px; display:grid; place-items:center; background:var(--art)}
+  .shop .sign{font:900 46px/1 var(--han); letter-spacing:.14em; color:var(--gold); padding:.16em .4em .2em; border:4px solid var(--gold); border-radius:6px;
+    background:rgba(0,0,0,.25); text-shadow:0 0 10px rgba(242,210,122,.6)}
+  .shop .body{padding:16px 18px 8px}
+  .shop h3{font:700 22px var(--slab); margin:0 0 4px}
+  .shop p{margin:0; color:#5a4f43; font-size:14.5px}
+  .shop .foot{display:flex; justify-content:space-between; align-items:center; padding:12px 18px 16px; gap:10px}
+  .shop .progress{font:700 13px var(--body); color:#75695b}
+  .shop .play{font:700 15px var(--slab); background:#c8372d; color:#fff; border-radius:9px; padding:8px 16px; box-shadow:0 3px 0 #9e1f19}
+  .shop.soon{opacity:.72} .shop.soon .play{background:#8a8f96; box-shadow:0 3px 0 #5d656c}
+  .cct .art{--art:linear-gradient(135deg, #1f6b52, #2f7a64 55%, #174a3c)}
+  .dimsum .art{--art:linear-gradient(135deg, #8f1a14, #b3261e 55%, #6a1414)}
+  .izakaya .art{--art:linear-gradient(135deg, #1b2a55, #2d3f7a 55%, #151d3f)}
+  footer{margin-top:48px; text-align:center; color:var(--muted); font-size:13px}
+  footer a{color:var(--ink)}
+
+  @media (max-width: 720px){ .regions{grid-template-columns:1fr} .board{font-size:48px} }
+  @media (prefers-reduced-motion: reduce){ .region, .shop{transition:none} }
+</style>
 </head>
 <body>
-<div id="app">
-  <aside class="side" aria-label="Your shop">
-    <section class="sidetop">
-      <div class="brandrow">
-        <div class="brand"><span class="zh">茶餐廳</span><span class="en">Rush</span></div>
-        <span class="brandbtns"><button id="learnBtn" type="button" class="tourbtn" title="Learning mode and your word list">學 Off</button><button id="soundBtn" type="button" class="tourbtn">Sound on</button><button id="tourBtn" type="button" class="tourbtn" title="Show the walkthrough again">? Tour</button></span>
-      </div>
-      <div class="day">
-        <div class="dayline"><b id="dayNo">Day 1</b><span id="clock"></span></div>
-        <div class="daybar"><i id="dayFill"></i></div>
-        <div class="dayends"><span>OPEN 07:00</span><span>CLOSE 18:00</span></div>
-      </div>
-      <div class="stats">
-        <div class="stat" id="lvlStat"><small>Level</small><b id="lvl"></b></div>
-        <div class="stat"><small>Cash</small><b id="money">$0</b></div>
-        <div class="stat"><small>Popularity</small><b id="pop" class="pop"></b></div>
-        <div class="stat" id="ambStat"><small>Ambience</small><b id="amb"></b></div>
-      </div>
-    </section>
-    <section class="panel">
-      <h2><span class="zh">今日</span>Today</h2>
-      <dl id="today" class="today"></dl>
-    </section>
-    <section class="panel">
-      <h2><span class="zh">目標</span>Today’s targets</h2>
-      <div id="goals" class="goals"></div>
-    </section>
-    <section class="panel invpanel" aria-label="Inventory">
-      <h2><span class="zh">存貨</span>Inventory</h2>
-      <p class="cap" id="capNote"></p>
-      <div id="inv"></div>
-      <button id="restockBtn2" type="button" class="wide">Order several at once</button>
-    </section>
-  </aside>
+<div class="wrap">
+  <header>
+    <p class="kicker">Cook fast · learn the words</p>
+    <h1>Restaurant Rush</h1>
+    <p class="lede">Run a little restaurant through the rush. Queue up the kitchen, keep the stock coming, decorate between days, and pick up the local language from your customers as you go.</p>
+  </header>
 
-  <div class="work">
-    <section class="cookbar" aria-label="Kitchen">
-      <section class="panel">
-        <h2><span class="zh">手頭</span>Cook’s queue</h2>
-        <div id="queue" class="queue"></div>
-      </section>
-      <section class="panel">
-        <h2 id="trayHead"><span class="zh">出餐</span>On the pass <span class="cap full-note">full: the cook waits</span></h2>
-        <div id="tray" class="queue"></div>
-      </section>
-      <section class="panel col-boost">
-        <h2><span class="zh">加油</span>Boosters</h2>
-        <div id="boosts" class="boosts"></div>
-      </section>
-      <section class="panel col-feed">
-        <h2><span class="zh">動態</span>Latest</h2>
-        <ul id="feed" class="feed"></ul>
-      </section>
-    </section>
-
-    <div class="railwrap">
-      <section class="rail" id="rail" aria-label="Order tickets"></section>
-      <div id="banner" class="banner" hidden></div>
+  <section id="pick">
+    <h2 class="q">Where are we cooking?</h2>
+    <div class="regions">
+      <button class="region hk" type="button" data-region="hongkong">
+        <span class="board" aria-hidden="true">香港</span>
+        <span class="name"><span>香港</span>Hong Kong</span>
+        <p>A cha chaan teng and a dim sum teahouse. Learn Cantonese as you cook.</p>
+        <span class="go">2 restaurants →</span>
+      </button>
+      <button class="region jp" type="button" data-region="japan">
+        <span class="lanterns" aria-hidden="true"><span class="lantern"></span><span class="lantern"></span><span class="lantern"></span></span>
+        <span class="board" aria-hidden="true">日本</span>
+        <span class="name"><span>日本</span>Japan</span>
+        <p>An izakaya is on its way. Learn Japanese, kana first.</p>
+        <span class="go">Coming soon →</span>
+      </button>
     </div>
+  </section>
 
-    <main class="main">
-      <div class="stage" id="stage">
-        <canvas id="game" aria-label="The restaurant: dining room at the back, kitchen at the front"></canvas>
-        <div class="controls">
-          <button id="pauseBtn" type="button" aria-pressed="false">Pause</button>
-          <button id="speedBtn" type="button" title="Game speed">1×</button>
-        </div>
-        <div class="zoomer" aria-label="Zoom">
-          <button id="zoomOut" type="button" title="Zoom out (−)" aria-label="Zoom out">−</button>
-          <button id="zoomIn" type="button" title="Zoom in (+)" aria-label="Zoom in">+</button>
-          <button id="zoomKitchen" type="button" title="Zoom in on the kitchen (K)">Kitchen view</button>
-          <button id="zoomAll" type="button" title="See the whole shop (0)">Whole shop</button>
-        </div>
-        <nav class="actions" aria-label="Shop">
-          <button id="restockBtn" type="button" class="act"><span class="zh">入貨</span>Restock</button>
-          <button id="kitchenBtn" type="button" class="act"><span class="zh">廚房</span>Kitchen</button>
-          <button id="diningBtn" type="button" class="act"><span class="zh">裝修</span>Dining room</button>
-          <button id="closeBtn" type="button" class="act danger"><span class="zh">收舖</span>Close</button>
-        </nav>
-        <div id="tip" class="tip" hidden></div>
-        <div id="itemBar" class="itembar" hidden></div>
-        <div id="toasts" class="toasts" aria-live="polite"></div>
-        <div id="drawer" class="drawer" hidden></div>
-        <div id="editor" class="editor" hidden></div>
+  <section id="hongkong" hidden>
+    <button class="back" type="button" data-back>← All regions</button>
+    <div class="rhead"><h2><span>香港</span>Hong Kong</h2><span class="lang" style="color:var(--hk)">Cantonese · Jyutping</span></div>
+    <div class="shops">
+      <a class="shop cct" href="cct/">
+        <div class="art"><span class="sign">茶餐廳</span></div>
+        <div class="body"><h3>Cha Chaan Teng Rush</h3><p>Milk tea, pineapple buns and a lunch rush. Grow from a tiny shopfront to 乾炒牛河 on the wok.</p></div>
+        <div class="foot"><span class="progress" data-save="cct-rush-save-v1">New game</span><span class="play">Play</span></div>
+      </a>
+      <a class="shop dimsum" href="dimsum/">
+        <div class="art"><span class="sign">飲茶</span></div>
+        <div class="body"><h3>Dim Sum Rush</h3><p>Sunday morning at the Golden Dragon. Steamers make baskets in batches, and the trolley does the rounds.</p></div>
+        <div class="foot"><span class="progress" data-save="dimsum-rush-save-v1">New game</span><span class="play">Play</span></div>
+      </a>
+    </div>
+  </section>
+
+  <section id="japan" hidden>
+    <button class="back" type="button" data-back>← All regions</button>
+    <div class="rhead"><h2><span>日本</span>Japan</h2><span class="lang" style="color:var(--jp)">Japanese · kana and kanji</span></div>
+    <div class="shops">
+      <div class="shop izakaya soon" aria-disabled="true">
+        <div class="art"><span class="sign">居酒屋</span></div>
+        <div class="body"><h3>Izakaya Rush</h3><p>After-work crowds, a running tab, and 「すみません、生ビールください」. Coming soon.</p></div>
+        <div class="foot"><span class="progress">In the works</span><span class="play">Soon</span></div>
       </div>
-    </main>
-  </div>
+    </div>
+  </section>
+
+  <footer>Every pixel drawn in code · <a href="https://github.com/jkw2lo/cha-chaan-teng-rush">Source on GitHub</a></footer>
 </div>
 
-  <div id="modal" class="modal" hidden><div class="card" id="modalCard" role="dialog" aria-modal="true"></div></div>
-</div>
-<script type="module" src="js/main.js"></script>
+<script type="module">
+  import { levelOf } from './js/data.js';
+  const views = { pick: document.getElementById('pick'), hongkong: document.getElementById('hongkong'), japan: document.getElementById('japan') };
+  function show(name){
+    for (const [k, el] of Object.entries(views)) el.hidden = k !== name;
+    const target = name === 'pick' ? '' : '#' + name;
+    if (location.hash !== target) history.replaceState(null, '', target || location.pathname);
+    (name === 'pick' ? views.pick.querySelector('.region') : views[name].querySelector('a.shop, .back'))?.focus({ preventScroll: true });
+  }
+  document.querySelectorAll('[data-region]').forEach(b => b.onclick = () => show(b.dataset.region));
+  document.querySelectorAll('[data-back]').forEach(b => b.onclick = () => show('pick'));
+  show(views[location.hash.slice(1)] ? location.hash.slice(1) : 'pick');
+
+  // show where each saved game is up to
+  for (const el of document.querySelectorAll('[data-save]')){
+    try {
+      const s = JSON.parse(localStorage.getItem(el.dataset.save) || 'null');
+      if (s && s.day) el.textContent = `Day ${s.day} · Level ${levelOf(s.stars || 0)}`;
+    } catch (e) { /* no save: keep "New game" */ }
+  }
+</script>
 </body>
 </html>

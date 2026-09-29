@@ -1,6 +1,11 @@
 # Cha Chaan Teng Rush
 
-**Play it:** https://jkw2lo.github.io/cha-chaan-teng-rush/ · **Dim Sum Rush:** https://jkw2lo.github.io/cha-chaan-teng-rush/?game=dimsum
+**Play:** https://jkw2lo.github.io/cha-chaan-teng-rush/ (pick a region, then a restaurant)
+
+- Cha Chaan Teng Rush: https://jkw2lo.github.io/cha-chaan-teng-rush/cct/
+- Dim Sum Rush: https://jkw2lo.github.io/cha-chaan-teng-rush/dimsum/
+
+Old `?game=dimsum` links redirect to the new addresses.
 
 A cooking and restaurant-management game set in a Hong Kong cha chaan teng (茶餐廳). You run the kitchen during a 12-minute day, keep the stock up, and spend the takings on furniture, a bigger dining room and faster appliances between days.
 
@@ -10,10 +15,12 @@ Plain HTML, CSS and JS modules. No build step and no dependencies. It runs in an
 
 The game engine is shared; each restaurant is a theme in `themes/`:
 
-- **Cha Chaan Teng Rush** (`themes/cct`, the default): milk tea, pineapple buns, noodles and toast.
-- **Dim Sum Rush** (`themes/dimsum`, `?game=dimsum`): a Sunday-morning 酒樓. Steamers make several baskets per job (`batch`), finished baskets ride on a trolley that holds 8, waiters push the trolley to the tables, and a full trolley sheds its oldest unwanted basket (counted as waste) instead of jamming the kitchen.
+- **Cha Chaan Teng Rush** (`themes/cct`, at `/cct/`): milk tea, pineapple buns, noodles and toast.
+- **Dim Sum Rush** (`themes/dimsum`, at `/dimsum/`): a Sunday-morning 酒樓. Steamers make several baskets per job (`batch`), finished baskets ride on a trolley that holds 8, waiters push the trolley to the tables, and a full trolley sheds its oldest unwanted basket (counted as waste) instead of jamming the kitchen.
 
-Each keeps its own save. The title card links to the other one.
+Each keeps its own save. The landing page (`index.html`) shows where each save is up to.
+
+**Pages:** `game.html` is the one game page. `node tools/pages.mjs` writes `cct/index.html` and `dimsum/index.html` from it (each just names its restaurant), so edit `game.html` and rerun the script rather than editing the copies.
 
 ## Learning mode
 
@@ -23,7 +30,8 @@ Off by default; switch it on from the title card or the **學** button. Tickets 
 
 ES modules don't load from `file://`, so serve the folder. Needs Node 18 or later.
 
-    node tools/server.mjs          # open http://localhost:8741 (moves to the next free port if that one's taken)
+    node tools/server.mjs          # open http://localhost:8741 (the landing page); moves to the next free port if that one's taken
+    node tools/pages.mjs           # after editing game.html: rewrite cct/index.html and dimsum/index.html
     node tools/simulate.mjs 30 casual              # 30 days with a human-paced bot (or 'perfect'), one line per day
     GAME=dimsum node tools/simulate.mjs 30 casual  # the same for Dim Sum Rush
 
@@ -100,7 +108,7 @@ Rearranging only happens between days: before you open, or from the end-of-day s
 
 ## Adding a restaurant
 
-Copy `themes/dimsum` to `themes/<id>`, change its `index.js`, `data.js` and `art.js` (anything you don't draw can fall through to another theme's art), and add the id to `GAMES` in `js/main.js` and `js/ui.js`.
+Copy `themes/dimsum` to `themes/<id>`, change its `index.js`, `data.js` and `art.js` (anything you don't draw can fall through to another theme's art), add the id to `GAMES` in `js/main.js`, `js/ui.js` and `tools/pages.mjs`, run `node tools/pages.mjs`, and add a card to `index.html`.
 
 ## Adding a menu item
 

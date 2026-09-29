@@ -15,7 +15,9 @@ const $ = id => document.getElementById(id);
 
 // ---------- which restaurant? ?game=<theme id> (defaults to the cha chaan teng) ----------
 const GAMES = ['cct', 'dimsum'];
-const gameId = GAMES.includes(new URLSearchParams(location.search).get('game')) ? new URLSearchParams(location.search).get('game') : 'cct';
+// the page says which restaurant it is (cct/index.html, dimsum/index.html); ?game= still works on game.html
+const asked = document.documentElement.dataset.game || new URLSearchParams(location.search).get('game');
+const gameId = GAMES.includes(asked) ? asked : 'cct';
 const theme = await import(`../themes/${gameId}/index.js`);
 useTheme(theme);
 A.applyPalette(theme.meta.palette);

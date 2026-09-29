@@ -319,7 +319,7 @@ export function summaryHTML(S, R){
 const GAMES = [{ id: 'cct', name: 'Cha Chaan Teng Rush', zh: '茶餐廳' }, { id: 'dimsum', name: 'Dim Sum Rush', zh: '飲茶' }];
 function otherGames(){
   const others = GAMES.filter(g => g.id !== (THEME && THEME.id));
-  return others.length ? `<p class="games">Also open: ${others.map(g => `<a href="?game=${g.id}">${g.zh} ${g.name} →</a>`).join(' ')}</p>` : '';
+  return `<p class="games">${others.map(g => `<a href="../${g.id}/">${g.zh} ${g.name} →</a>`).join(' ')} <a href="../">All restaurants</a></p>`;
 }
 
 // The word list: every dish you can make, with how well you know it.
