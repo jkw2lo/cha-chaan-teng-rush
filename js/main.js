@@ -185,6 +185,7 @@ function openDrawer(){
   ui.drawerOpen = true; ui.cart = {};
   $('drawer').hidden = false;
   UI.renderRestock(S, R, ui.cart, phase === 'day');
+  $('drawer').querySelector('.rrows').scrollTop = 0;        // a fresh drawer starts at the top
 }
 function closeDrawer(){ ui.drawerOpen = false; $('drawer').hidden = true; }
 $('drawer').addEventListener('click', e => {

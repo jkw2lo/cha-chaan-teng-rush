@@ -197,12 +197,18 @@ export function renderRestock(S, R, cart, live){
     </div>`;
   }).join('');
   const total = Object.entries(cart).reduce((s, [k, n]) => s + INGREDIENTS[k].cost * n, 0);
-  $('drawer').innerHTML = `
+  const html = `
     <div class="dhead"><h2><span class="zh">入貨</span> Order stock</h2><button class="x" data-close aria-label="Close">×</button></div>
     <p class="muted">${live ? 'Deliveries take time, so order before you run out. The shop keeps trading while you wait.' : 'Anything you order now is delivered before you open.'}</p>
     <div class="rrows">${rows}</div>
     <div class="dfoot"><div><small>Total</small><b class="${total > S.money ? 'neg' : ''}">${fmtMoney(total)}</b><small>Cash ${fmtMoney(S.money)}</small></div>
     <button class="primary" data-buy ${total && total <= S.money ? '' : 'disabled'}>Place order</button></div>`;
+  // Rebuild only when something changed, and keep the list where it was scrolled to.
+  const el = $('drawer');
+  if (el._html === html) return;
+  const list = el.querySelector('.rrows'), top = list ? list.scrollTop : 0;
+  el._html = html; el.innerHTML = html;
+  el.querySelector('.rrows').scrollTop = top;
 }
 
 // ---------- shop / editor ----------

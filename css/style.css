@@ -576,3 +576,6 @@ body.resizing, body.resizing *{cursor:col-resize !important; user-select:none}
 /* the piece being dragged, under the pointer until it reaches the room */
 .dragpreview{position:fixed; z-index:30; width:90px; height:72px; margin:-36px 0 0 -45px; pointer-events:none; filter:drop-shadow(0 6px 10px rgba(0,0,0,.35)); opacity:.92}
 .dragpreview[hidden]{display:none}
+
+/* the ticket rail never scrolls: tickets that don't fit run off the end, like a real rail */
+.rail{overflow:hidden}
