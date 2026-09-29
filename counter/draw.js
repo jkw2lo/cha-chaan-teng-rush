@@ -8,6 +8,7 @@ import { spotDish, takings } from './sim.js';
 export const W = 1280, H = 720;
 const HUD = 48, COUNTER_Y = 296, PREP_Y = 372;
 export const SEAT_X = [230, 500, 770, 1040];
+const DOOR = { x: 1156, y: 132, w: 104 }, CLOCK = { x: 1208, y: 76 };
 
 // ---------- layout: every clickable/droppable box ----------
 export const L = {
@@ -125,18 +126,7 @@ export function drawBag(c, parts, mess, cx, cy, r){
   c.save(); c.lineJoin = 'round'; c.lineCap = 'round';
   const dish = !mess && finished(parts);
   if (dish){ c.drawImage(iconCanvas(dish, 128), cx - r * 1.15, cy - r * 1.2, r * 2.3, r * 2.3); c.restore(); return; }
-  if (mess){
-    plate(c, cx, cy + r * .35, r);
-    const rnd = seeded(parts.length * 31 + mess.length);
-    c.fillStyle = mess.startsWith('Burnt') || mess.startsWith('Stewed') ? '#2b2018' : '#8a6a3a';
-    c.beginPath();
-    for (let k = 0; k <= 14; k++){ const a = k / 14 * TAU, q = r * (.35 + rnd() * .22); c.lineTo(cx + Math.cos(a) * q, cy + r * .2 + Math.sin(a) * q * .45); }
-    c.fill();
-    c.fillStyle = 'rgba(120,200,90,.55)'; for (let i = 0; i < 4; i++){ c.beginPath(); c.arc(cx + (rnd() - .5) * r, cy + r * .1 + (rnd() - .5) * r * .3, r * .06, 0, TAU); c.fill(); }
-    c.strokeStyle = 'rgba(90,90,90,.6)'; c.lineWidth = r * .05;
-    for (const dx of [-.2, .15]){ c.beginPath(); c.moveTo(cx + dx * r, cy - r * .1); c.bezierCurveTo(cx + (dx - .15) * r, cy - r * .35, cx + (dx + .15) * r, cy - r * .45, cx + dx * r, cy - r * .7); c.stroke(); }
-    c.restore(); return;
-  }
+  if (mess){ drawMess(c, parts, mess, cx, cy, r); c.restore(); return; }
   if (rawInput(parts)){
     if (parts[0] === 'tea'){ c.fillStyle = '#c9cfd4'; c.beginPath(); c.ellipse(cx, cy + r * .3, r * .7, r * .22, 0, 0, TAU); c.fill(); teaLeaves(c, cx, cy + r * .22, r * 1.3); }
     else { c.fillStyle = '#b98b55'; rr(c, cx - r * .9, cy + r * .1, r * 1.8, r * .4, r * .08); c.fill(); drawIngredient(c, parts[0], cx, cy - r * .05, r * .7); }
@@ -159,6 +149,37 @@ export function drawBag(c, parts, mess, cx, cy, r){
     if (has('condensed')){ c.strokeStyle = '#fff8e8'; c.lineWidth = r * .08; c.beginPath(); c.moveTo(cx - r * .4, cy); c.bezierCurveTo(cx - r * .2, cy - r * .25, cx, cy + r * .25, cx + r * .2, cy); c.bezierCurveTo(cx + r * .3, cy - r * .1, cx + r * .35, cy + r * .2, cx + r * .45, cy + r * .1); c.stroke(); }
   }
   c.restore();
+}
+
+// a mess looks like what went wrong with it
+function stink(c, cx, cy, r){
+  c.strokeStyle = 'rgba(110,150,60,.75)'; c.lineWidth = r * .05;
+  for (const dx of [-.3, 0, .3]){ c.beginPath(); c.moveTo(cx + dx * r, cy); for (let k = 1; k <= 6; k++) c.lineTo(cx + dx * r + Math.sin(k * 1.6) * r * .07, cy - k * r * .09); c.stroke(); }
+}
+function badge(c, x, y, r){
+  c.fillStyle = '#c8372d'; c.beginPath(); c.arc(x, y, r * .2, 0, TAU); c.fill();
+  c.strokeStyle = '#fff'; c.lineWidth = r * .06; c.beginPath(); c.moveTo(x - r * .08, y - r * .08); c.lineTo(x + r * .08, y + r * .08); c.moveTo(x + r * .08, y - r * .08); c.lineTo(x - r * .08, y + r * .08); c.stroke();
+}
+function partSprite(c, p, x, y, r){
+  if (p === 'brewTea') cup(c, x, y, r * .5, '#5a2e14');
+  else if (p === 'toast') slice(c, x, y, r * .5, '#9a5a1e', '#e9a84a');
+  else if (p === 'boiled'){ c.strokeStyle = '#f0cc6a'; c.lineWidth = r * .06; for (let i = 0; i < 4; i++){ c.beginPath(); c.moveTo(x - r * .3, y + i * r * .06 - r * .1); for (let k = 1; k <= 6; k++) c.lineTo(x - r * .3 + k * r * .1, y + i * r * .06 - r * .1 + Math.sin(k * 1.7 + i) * r * .05); c.stroke(); } }
+  else drawIngredient(c, p, x, y, r * .38);
+}
+function drawMess(c, parts, mess, cx, cy, r){
+  if (mess === 'Weak tea'){ cup(c, cx, cy, r, '#d9b98a'); text(c, '?', cx + r * .7, cy - r * .5, `900 ${r * .5}px ${SLAB}`, '#9e1f19'); return; }
+  if (mess === 'Pale toast'){ plate(c, cx, cy + r * .35, r); slice(c, cx, cy + r * .1, r * .95, '#d8c49a', '#fbf2dc'); text(c, '?', cx + r * .7, cy - r * .5, `900 ${r * .5}px ${SLAB}`, '#9e1f19'); return; }
+  if (mess === 'Hard noodles'){ bowl(c, cx, cy, r, () => { c.fillStyle = 'rgba(214,170,90,.45)'; c.fillRect(cx - r, cy - r * .5, r * 2, r); noodleBlock(c, cx, cy - r * .2, r * .8); }); text(c, '?', cx + r * .8, cy - r * .5, `900 ${r * .5}px ${SLAB}`, '#9e1f19'); return; }
+  // a wrong mix: everything that went in, in a heap, going off
+  plate(c, cx, cy + r * .35, r);
+  const rnd = seeded(parts.join('').length * 17 + parts.length);
+  parts.forEach((p, i) => {
+    const a = i / parts.length * TAU + rnd(), d = parts.length > 1 ? r * .32 : 0;
+    c.save(); c.translate(cx + Math.cos(a) * d, cy + r * .12 + Math.sin(a) * d * .4); c.rotate((rnd() - .5) * .9);
+    partSprite(c, p, 0, 0, r); c.restore();
+  });
+  stink(c, cx, cy - r * .35, r);
+  badge(c, cx + r * .8, cy - r * .55, r);
 }
 
 // ---------- people ----------
@@ -241,11 +262,19 @@ function drawRoom(c){
     [...zh].forEach((ch, k) => text(c, ch, bx + 25, by + 22 + k * 26, `900 21px ${HAN}`, '#fff3d6'));
     text(c, `$${p}`, bx + 25, by + 116, `700 15px ${SLAB}`, '#f2d27a');
   });
-  // a wall clock and a fan at the right
-  c.fillStyle = '#fbf6ea'; c.beginPath(); c.arc(1200, 120, 34, 0, TAU); c.fill(); c.strokeStyle = '#8a5a3a'; c.lineWidth = 5; c.stroke();
-  // stools, behind the counter
+  // the wall clock, over the door
+  c.fillStyle = '#fbf6ea'; c.beginPath(); c.arc(CLOCK.x, CLOCK.y, 24, 0, TAU); c.fill(); c.strokeStyle = '#8a5a3a'; c.lineWidth = 4; c.stroke();
+  c.fillStyle = '#231d18'; for (let k = 0; k < 12; k++){ const a = k / 12 * TAU; c.fillRect(CLOCK.x + Math.sin(a) * 19 - 1, CLOCK.y - Math.cos(a) * 19 - 1, 2, 2); }
+  // the doorway: a dark recess the glass door swings in
+  c.fillStyle = '#5a3a24'; c.fillRect(DOOR.x - 8, DOOR.y - 8, DOOR.w + 16, COUNTER_Y - DOOR.y + 8);
+  c.fillStyle = '#26303a'; c.fillRect(DOOR.x, DOOR.y, DOOR.w, COUNTER_Y - DOOR.y);
+  c.fillStyle = '#c8372d'; rr(c, DOOR.x - 10, DOOR.y - 30, DOOR.w + 20, 22, 3); c.fill();
+  text(c, '歡迎光臨', DOOR.x + DOOR.w / 2, DOOR.y - 19, `900 14px ${HAN}`, '#f2d27a');
+  // stools, behind the counter: chrome rim and red vinyl
   for (const x of SEAT_X){
-    c.fillStyle = '#b3261e'; rr(c, x - 36, COUNTER_Y - 14, 72, 16, 8); c.fill();
+    c.fillStyle = '#9aa3a9'; rr(c, x - 38, COUNTER_Y - 10, 76, 12, 6); c.fill();
+    c.fillStyle = '#b3261e'; rr(c, x - 35, COUNTER_Y - 18, 70, 12, 6); c.fill();
+    c.fillStyle = 'rgba(255,255,255,.3)'; rr(c, x - 26, COUNTER_Y - 16, 34, 3, 2); c.fill();
   }
   // the counter: formica top, a wooden front with a red kick strip
   c.fillStyle = '#e9e1cc'; c.fillRect(0, COUNTER_Y, W, 40);
@@ -254,12 +283,47 @@ function drawRoom(c){
   c.fillStyle = '#8a5a3a'; c.fillRect(0, COUNTER_Y + 40, W, PREP_Y - COUNTER_Y - 40);
   c.fillStyle = '#6f4630'; for (let x = 0; x < W; x += 64) c.fillRect(x, COUNTER_Y + 40, 3, PREP_Y - COUNTER_Y - 40);
   c.fillStyle = '#c8372d'; c.fillRect(0, PREP_Y - 6, W, 6);
+  // what lives on every cha chaan teng counter, between the stools
+  condiments(c, 365, 'sugar'); condiments(c, 635, 'sauce'); condiments(c, 905, 'sugar'); condiments(c, 95, 'sauce');
   // the prep area: brushed steel
   const g = c.createLinearGradient(0, PREP_Y, 0, H); g.addColorStop(0, '#b9c1c6'); g.addColorStop(1, '#97a0a6');
   c.fillStyle = g; c.fillRect(0, PREP_Y, W, H - PREP_Y);
   c.fillStyle = 'rgba(255,255,255,.08)'; for (let y = PREP_Y + 4; y < H; y += 5) c.fillRect(0, y, W, 1);
   c.fillStyle = 'rgba(0,0,0,.12)'; c.fillRect(0, 512, W, 3);
 }
+function condiments(c, x, kind){
+  const base = COUNTER_Y + 22;
+  c.fillStyle = 'rgba(0,0,0,.12)'; c.beginPath(); c.ellipse(x, base + 2, 40, 5, 0, 0, TAU); c.fill();
+  if (kind === 'sugar'){
+    // glass sugar pourer with a steel cap, and a box of tissues
+    c.fillStyle = 'rgba(220,235,240,.85)'; rr(c, x - 30, base - 34, 22, 34, 4); c.fill();
+    c.fillStyle = '#fbfaf5'; c.fillRect(x - 28, base - 20, 18, 18);
+    c.fillStyle = '#b9c1c6'; c.beginPath(); c.moveTo(x - 32, base - 34); c.lineTo(x - 6, base - 34); c.lineTo(x - 14, base - 44); c.lineTo(x - 24, base - 44); c.closePath(); c.fill();
+    c.fillStyle = '#e8d6a8'; rr(c, x - 2, base - 18, 34, 18, 2); c.fill();
+    c.fillStyle = '#c8372d'; c.fillRect(x - 2, base - 12, 34, 4);
+    c.fillStyle = '#fff'; c.beginPath(); c.moveTo(x + 8, base - 18); c.quadraticCurveTo(x + 15, base - 30, x + 22, base - 18); c.fill();
+  } else {
+    // soy sauce, Worcestershire (喼汁) and a pot of toothpicks
+    c.fillStyle = '#3a1d10'; rr(c, x - 30, base - 30, 13, 30, 3); c.fill(); c.fillRect(x - 27, base - 40, 7, 10);
+    c.fillStyle = '#c8372d'; c.fillRect(x - 30, base - 20, 13, 7);
+    c.fillStyle = '#5a2a14'; rr(c, x - 12, base - 26, 13, 26, 3); c.fill(); c.fillRect(x - 9, base - 34, 7, 8);
+    c.fillStyle = '#f2d27a'; c.fillRect(x - 12, base - 16, 13, 6);
+    c.fillStyle = '#6fa8c9'; rr(c, x + 8, base - 16, 16, 16, 3); c.fill();
+    c.strokeStyle = '#e8d6a8'; c.lineWidth = 1.5; for (let i = 0; i < 5; i++){ c.beginPath(); c.moveTo(x + 11 + i * 2.5, base - 16); c.lineTo(x + 10 + i * 3, base - 26); c.stroke(); }
+  }
+}
+function drawDoor(c, run, t){
+  // the glass door swings open while someone's walking through it
+  const near = [...run.seats.map(s => s.cust).filter(Boolean), ...run.walkers].some(p => (p.state === 'arrive' || p.state === 'leave') && p.x > DOOR.x - 40);
+  doorOpen += ((near ? 1 : 0) - doorOpen) * .15;
+  const w = DOOR.w * (1 - .7 * doorOpen), h = COUNTER_Y - DOOR.y;
+  c.fillStyle = '#b3261e'; c.fillRect(DOOR.x + DOOR.w - w, DOOR.y, w, h);
+  c.fillStyle = 'rgba(170,215,230,.75)'; c.fillRect(DOOR.x + DOOR.w - w + 7, DOOR.y + 7, w - 14, h - 7);
+  c.fillStyle = 'rgba(255,255,255,.35)'; c.beginPath(); c.moveTo(DOOR.x + DOOR.w - w + 12, DOOR.y + 10); c.lineTo(DOOR.x + DOOR.w - w + 12 + w * .3, DOOR.y + 10); c.lineTo(DOOR.x + DOOR.w - w + 12, DOOR.y + 70); c.fill();
+  if (w > 50){ c.fillStyle = '#f2d27a'; rr(c, DOOR.x + DOOR.w - w + w / 2 - 20, DOOR.y + 70, 40, 20, 3); c.fill(); text(c, '推 PUSH', DOOR.x + DOOR.w - w / 2, DOOR.y + 80, `700 10px ${SANS}`, '#2a221c'); }
+  c.fillStyle = '#d7dbe0'; c.fillRect(DOOR.x + DOOR.w - w + 6, DOOR.y + 100, 4, 40);
+}
+let doorOpen = 0;
 function background(){
   if (bg) return bg;
   bg = document.createElement('canvas'); bg.width = W * 2; bg.height = H * 2;
@@ -273,8 +337,9 @@ function clock(c, t){
   const mins = 7 * 60 + Math.min(1, t / DAY.seconds) * 240;
   const h = (mins / 60) % 12, m = mins % 60;
   c.strokeStyle = '#231d18'; c.lineCap = 'round';
-  c.lineWidth = 4; c.beginPath(); c.moveTo(1200, 120); c.lineTo(1200 + Math.sin(h / 12 * TAU) * 17, 120 - Math.cos(h / 12 * TAU) * 17); c.stroke();
-  c.lineWidth = 2.5; c.beginPath(); c.moveTo(1200, 120); c.lineTo(1200 + Math.sin(m / 60 * TAU) * 26, 120 - Math.cos(m / 60 * TAU) * 26); c.stroke();
+  const { x, y } = CLOCK;
+  c.lineWidth = 3.5; c.beginPath(); c.moveTo(x, y); c.lineTo(x + Math.sin(h / 12 * TAU) * 11, y - Math.cos(h / 12 * TAU) * 11); c.stroke();
+  c.lineWidth = 2; c.beginPath(); c.moveTo(x, y); c.lineTo(x + Math.sin(m / 60 * TAU) * 18, y - Math.cos(m / 60 * TAU) * 18); c.stroke();
   return `${String(Math.floor(mins / 60)).padStart(2, '0')}:${String(Math.floor(mins % 60)).padStart(2, '0')}`;
 }
 function hud(c, run, time){
@@ -286,13 +351,13 @@ function hud(c, run, time){
   text(c, time, 190, 25, `700 22px ${SLAB}`, '#fff', 'left');
   c.fillStyle = 'rgba(255,255,255,.12)'; rr(c, 262, 18, 220, 12, 6); c.fill();
   c.fillStyle = run.closed ? '#c8372d' : '#f2d27a'; rr(c, 262, 18, Math.max(12, 220 * f), 12, 6); c.fill();
-  text(c, run.closed ? 'Closed: finishing up' : 'Open till 11:00', 492, 25, `500 13px ${SANS}`, '#cfd8d2', 'left');
+  text(c, (run.closed ? 'Closing up' : 'Open till 11:00') + ` · ${run.cfgLabel.split(' ').pop()}`, 492, 25, `500 13px ${SANS}`, '#cfd8d2', 'left');
   // takings vs target
-  const tk = takings(run), tf = Math.min(1, tk / DAY.target);
+  const tk = takings(run), tf = Math.min(1, tk / run.target);
   text(c, 'Takings', 700, 25, `700 12px ${SANS}`, '#9fb4aa', 'left');
   c.fillStyle = 'rgba(255,255,255,.12)'; rr(c, 760, 16, 200, 16, 8); c.fill();
-  c.fillStyle = tk >= DAY.target ? '#2e9e5b' : '#e39b2d'; rr(c, 760, 16, Math.max(16, 200 * tf), 16, 8); c.fill();
-  text(c, `$${tk} / $${DAY.target}`, 860, 25, `700 12px ${SANS}`, '#fff');
+  c.fillStyle = tk >= run.target ? '#2e9e5b' : '#e39b2d'; rr(c, 760, 16, Math.max(16, 200 * tf), 16, 8); c.fill();
+  text(c, `$${tk} / $${run.target}`, 860, 25, `700 12px ${SANS}`, '#fff');
   text(c, 'Cash', 1010, 25, `700 12px ${SANS}`, '#9fb4aa', 'left');
   text(c, `$${Math.floor(run.cash)}`, 1046, 25, `700 22px ${SLAB}`, run.cash < 0 ? '#ff8a7a' : '#fff', 'left');
 }
@@ -324,7 +389,8 @@ function timerBar(c, a, def, x, y, w, t){
   c.save(); rr(c, x, y, w, h, 6); c.clip();
   c.fillStyle = '#8f989e'; c.fillRect(x, y, w * def.ready / span, h);
   c.fillStyle = '#2e9e5b'; c.fillRect(x + w * def.ready / span, y, w * (1 - def.ready / span), h);
-  c.fillStyle = '#e39b2d'; c.fillRect(x + w * (span - 2.5) / span, y, w * 2.5 / span, h);
+  const warn = (def.burn - def.ready) * .35;
+  c.fillStyle = '#e39b2d'; c.fillRect(x + w * (span - warn) / span, y, w * warn / span, h);
   c.restore();
   if (a.part){
     const px = x + w * Math.min(1, a.t / span);
@@ -334,8 +400,8 @@ function timerBar(c, a, def, x, y, w, t){
   }
 }
 function appliance(c, key, a, box, t, run, pulling){
-  const def = APPLIANCES[key], { x, y, w, h } = box, cx = x + w / 2;
-  const ready = a.part && !a.ruined && a.t >= def.ready, late = ready && a.t >= def.burn - 2.5;
+  const def = { ...APPLIANCES[key], ...run.timing[key] }, { x, y, w, h } = box, cx = x + w / 2;
+  const ready = a.part && !a.ruined && a.t >= def.ready, late = ready && a.t >= def.burn - (def.burn - def.ready) * .35;
   // mat and label
   c.fillStyle = 'rgba(40,50,56,.18)'; rr(c, x, y, w, h, 10); c.fill();
   if (ready){ c.strokeStyle = late && Math.sin(t * 14) > 0 ? '#ff5a4d' : '#2e9e5b'; c.lineWidth = 3; rr(c, x + 1.5, y + 1.5, w - 3, h - 3, 10); c.stroke(); }
@@ -354,7 +420,8 @@ function appliance(c, key, a, box, t, run, pulling){
     c.strokeStyle = '#5d656c'; c.lineWidth = 3; c.beginPath(); c.moveTo(x + 150, y + 148); c.lineTo(x + 150, y + 40); c.lineTo(x + 180, y + 40); c.stroke();
     c.strokeStyle = '#6b6f73'; c.lineWidth = 2; c.beginPath(); c.arc(x + 180, y + 52, 12, 0, TAU); c.stroke();
     c.fillStyle = a.part ? '#b07a45' : '#efe3c8'; c.beginPath(); c.moveTo(x + 168, y + 52); c.quadraticCurveTo(x + 172, y + 100, x + 180, y + 104); c.quadraticCurveTo(x + 188, y + 100, x + 192, y + 52); c.closePath(); c.fill();
-    cup(c, x + 180, y + 130, 18, a.pull > 0 ? '#5a2e14' : '#e9e4d8');
+    cup(c, x + 180, y + 130, 18, '#e9e4d8');
+    if (a.pull > 0){ const f = Math.min(1, a.pull / def.pull); c.fillStyle = '#5a2e14'; c.beginPath(); c.ellipse(x + 180, y + 126.4, 10 * f, 2.7 * f, 0, 0, TAU); c.fill(); }
     if (pulling && a.part){
       // tea arcing from the kettle, through the sock, into the cup
       c.strokeStyle = 'rgba(120,60,20,.9)'; c.lineWidth = 5; c.beginPath(); c.moveTo(x + 146, y + 52); c.quadraticCurveTo(x + 168, y + 10, x + 180, y + 50); c.stroke();
@@ -368,7 +435,7 @@ function appliance(c, key, a, box, t, run, pulling){
     // bread peeking out of the slots, browning as it goes
     if (a.part){
       const k = Math.min(1, a.t / def.burn), col = a.ruined ? '#2b2018' : k < def.ready / def.burn ? '#f0dcae' : k < .8 ? '#d99a4a' : '#8a4a1e';
-      const up = a.t < 0.25 ? 18 : 6;
+      const up = a.t >= def.ready && !a.ruined ? 22 : 4;
       for (const sx of [tx + 22, tx + 74]){ c.fillStyle = col; rr(c, sx, ty - up, 36, 30, 8); c.fill(); }
     }
     c.fillStyle = tg; rr(c, tx, ty, 130, 78, 16); c.fill();
@@ -444,6 +511,7 @@ export function drawFrame(c, run, ui){
   const time = clock(c, run.t);
   hud(c, run, time);
 
+  drawDoor(c, run, t);
   // customers and what's in front of them
   const people = [];
   run.seats.forEach((s, i) => { if (s.cust) people.push({ c: s.cust, i }); });
@@ -453,7 +521,9 @@ export function drawFrame(c, run, ui){
     const moving = cu.state === 'arrive' || cu.state === 'leave';
     const f = cu.patience / cu.max;
     const mood = cu.state === 'leave' ? (cu.happy ? 'happy' : 'angry') : cu.state === 'eat' ? 'happy' : f > .5 ? 'ok' : f > .25 ? 'cross' : 'angry';
+    c.globalAlpha = Math.max(.1, Math.min(1, (DOOR.x + 74 - x) / 60));     // fading through the doorway
     drawPerson(c, cu.look, x, COUNTER_Y + (moving ? Math.abs(Math.sin(t * 10)) * -4 : 0), mood, t, cu.state === 'eat');
+    c.globalAlpha = 1;
     if (cu.state === 'leave' && !cu.happy){ text(c, '唔等喇！', x, COUNTER_Y - 170, `900 18px ${HAN}`, '#9e1f19'); }
   }
   run.seats.forEach((s, i) => {

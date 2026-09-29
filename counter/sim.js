@@ -5,11 +5,17 @@ import { INGREDIENTS, APPLIANCES, RECIPES, RECIPE_ORDER, START_STOCK, DAY, candi
 
 const ORDER_WEIGHTS = { hotTea: 3, butterBun: 2, condensedToast: 2, noodleSpam: 2 };
 export const SEAT_WALK = 320;          // px per second, customers walking along the counter
-export const DOOR_X = 1340;            // they come in from the right
+export const DOOR_X = 1230;            // they come in (and leave) through the door on the right
 
-export function newRun(rnd = Math.random){
+// cfg: the difficulty knobs from settings.js (patience, pace, window, target), all ×1 / DAY.target by default
+export function newRun(rnd = Math.random, cfg = {}){
+  cfg = { patience: 1, pace: 1, window: 1, target: DAY.target, ...cfg };
   return {
-    rnd, t: 0, over: false, closed: false,
+    rnd, cfg, t: 0, over: false, closed: false,
+    target: cfg.target,
+    cfgLabel: cfg.label || 'Normal',
+    // each appliance's green window stretches or shrinks with the difficulty; `ready` stays put
+    timing: Object.fromEntries(Object.entries(APPLIANCES).map(([k, a]) => [k, { ready: a.ready, burn: a.ready + (a.burn - a.ready) * cfg.window }])),
     cash: DAY.startCash, sales: 0, tips: 0, stockSpent: 0, waste: 0,
     served: 0, walkouts: 0, messes: 0, burnt: 0, customers: 0,
     stock: { ...START_STOCK },
@@ -92,7 +98,7 @@ export function loadAppliance(run, key, from){
 
 // Take whatever's in an appliance out onto a spot. Early = undercooked, which is a mess.
 export function takeOut(run, key, prefer){
-  const a = run.apps[key], def = APPLIANCES[key];
+  const a = run.apps[key], def = { ...APPLIANCES[key], ...run.timing[key] };
   if (a.ruined){ binAppliance(run, key); return null; }
   if (!a.part) return null;
   const early = a.t < def.ready;
@@ -191,7 +197,7 @@ function arrive(run){
   const two = run.rnd() < DAY.twoItemChance;
   const order = [pick(run, ORDER_WEIGHTS)];
   if (two){ order.unshift('hotTea'); if (order[1] === 'hotTea') order[1] = pick(run, { butterBun: 1, condensedToast: 1, noodleSpam: 1 }); }
-  const max = DAY.patience[order.length - 1];
+  const max = DAY.patience[order.length - 1] * run.cfg.patience;
   run.seats[seat].cust = { id: run.nextId++, order, got: order.map(() => false), patience: max, max, state: 'arrive', x: DOOR_X, look: Math.floor(run.rnd() * 1e6) };
   run.customers++;
   ev(run, 'arrive', { seat });
@@ -214,7 +220,7 @@ export function tick(run, dt, seatX){
   if (!closing && run.t >= run.nextArrival && run.t < DAY.seconds - 10){
     if (arrive(run)){
       const ramp = 1 - .35 * run.t / DAY.seconds;
-      run.nextArrival = run.t + (DAY.gap[0] + run.rnd() * (DAY.gap[1] - DAY.gap[0])) * ramp;
+      run.nextArrival = run.t + (DAY.gap[0] + run.rnd() * (DAY.gap[1] - DAY.gap[0])) * ramp / run.cfg.pace;
     } else run.nextArrival = run.t + .5;
   }
 
@@ -239,11 +245,11 @@ export function tick(run, dt, seatX){
     }
   });
   for (const w of run.walkers) w.x += SEAT_WALK * dt;
-  run.walkers = run.walkers.filter(w => w.x < DOOR_X + 60);
+  run.walkers = run.walkers.filter(w => w.x < DOOR_X);
 
   for (const [key, a] of Object.entries(run.apps)){
     if (!a.part || a.ruined) continue;
-    const def = APPLIANCES[key], before = a.t;
+    const def = { ...APPLIANCES[key], ...run.timing[key] }, before = a.t;
     a.t += dt;
     if (before < def.ready && a.t >= def.ready) ev(run, 'ready', { app: key });
     if (a.t >= def.burn){ a.ruined = true; run.burnt++; ev(run, 'burnt', { app: key, why: def.late }); }
@@ -266,6 +272,6 @@ export const takings = run => run.sales + run.tips;
 export const net = run => run.sales + run.tips - run.stockSpent - run.waste;
 export function stars(run){
   const t = takings(run);
-  return t >= DAY.target * 1.5 ? 3 : t >= DAY.target * 1.2 ? 2 : t >= DAY.target ? 1 : 0;
+  return t >= run.target * 1.5 ? 3 : t >= run.target * 1.2 ? 2 : t >= run.target ? 1 : 0;
 }
 export { RECIPE_ORDER };

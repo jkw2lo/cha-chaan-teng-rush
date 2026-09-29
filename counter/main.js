@@ -7,6 +7,7 @@ import { sfx, unlockAudio, callOut, cycleSound, soundMode, startSizzle, stopSizz
 import { iconURL } from '../js/art.js';
 import { INGREDIENTS, BIN_ORDER, RECIPES, RECIPE_ORDER, APPLIANCES, DAY } from './recipes.js';
 import * as S from './sim.js';
+import { PRESETS, KNOBS, loadSettings, saveSettings, matchesPreset, settingsLabel } from './settings.js';
 import { W, H, L, SEAT_X, inBox, drawFrame } from './draw.js';
 
 useTheme({ ...cct, meta: { ...cct.meta, splash: { ...cct.meta.splash, board: '茶餐廳', word: 'COUNTER',
@@ -16,7 +17,9 @@ const $ = id => document.getElementById(id);
 const cv = $('stage'), c = cv.getContext('2d');
 const debug = new URLSearchParams(location.search).has('debug');
 
-let run = S.newRun();
+let settings = loadSettings();
+const freshRun = () => S.newRun(Math.random, { ...settings, label: settingsLabel(settings) });
+let run = freshRun();
 let started = false, paused = false, phoneOpen = false, summaryShown = false;
 const ui = { t: 0, drag: null, floats: [], hover: null, pulling: false };
 
@@ -52,14 +55,14 @@ function handleEvents(){
       case 'mess': sfx.waste(); { const p = spotCentre(e.spot); float(p.x, p.y - 30, e.why || 'Mess!', '#9e1f19'); } break;
       case 'ready': sfx.ready(); break;
       case 'out': sfx.clear(); break;
-      case 'burnt': sfx.walkout(); { const b = L.apps[e.app]; float(b.x + b.w / 2, b.y + 40, e.why + '!', '#9e1f19'); } break;
+      case 'burnt': sfx.walkout(); { const b = L.apps[e.app]; float(b.x + b.w / 2, b.y + 110, e.why + '!', '#9e1f19'); } break;
       case 'serve': sfx.bell(); break;
       case 'pay': sfx.cash(); float(SEAT_X[e.seat], 200, `+$${e.price + e.tip}`, '#1d6b3f'); if (e.tip) float(SEAT_X[e.seat], 230, `tip $${e.tip}`, '#2e7d4f'); break;
       case 'walkout': sfx.walkout(); break;
       case 'arrive': sfx.door(); break;
       case 'order': { const n = {}; e.order.forEach(d => n[d] = (n[d] || 0) + 1); callOut(n); } break;
       case 'clear': sfx.clear(); break;
-      case 'bin': sfx.waste(); if (e.cost) float(L.trash.x + 52, L.trash.y + 40, `-$${e.cost.toFixed(e.cost % 1 ? 1 : 0)}`, '#9e1f19'); break;
+      case 'bin': sfx.waste(); if (e.cost) float(L.trash.x + 52, L.trash.y + 120, `-$${e.cost.toFixed(e.cost % 1 ? 1 : 0)}`, '#9e1f19'); break;
       case 'phone': sfx.queue(); break;
       case 'delivery': sfx.delivery(); { const b = L.bins.find(b => b.ing === e.ing); float(b.x + b.w / 2, b.y + 20, `+${INGREDIENTS[e.ing].pack}`, '#1d4f7a'); } break;
       case 'closing': say('11:00, closing time. Finish off the customers you have.', false); break;
@@ -192,7 +195,7 @@ function showCard(kind){
   if (kind === 'intro' || kind === 'recipes'){
     card.innerHTML = `
       <h2><span class="zh">開工</span>${kind === 'intro' ? 'Morning shift at the counter' : 'Recipes'}</h2>
-      ${kind === 'intro' ? `<p>Four stools, a kettle, a toaster and a noodle pot. Take $${DAY.target} before 11:00.</p>` : ''}
+      ${kind === 'intro' ? `<p>Four stools, a kettle, a toaster and a noodle pot. Hit the takings target before 11:00. Set how hard the morning is below; you can change it again after each round.</p>${difficultyHTML()}` : ''}
       <ul class="recipes">${recipeHTML()}</ul>
       <div class="how">
         <p><b>Build</b>: click an ingredient to put it on the highlighted spot (click a spot to pick it), or drag it onto any spot.
@@ -202,7 +205,8 @@ function showCard(kind){
            A wrong mix is a mess: drag it to the bin (it costs you). Running low? Phone the supplier.</p>
       </div>
       <button type="button" class="go" id="cardGo">${kind === 'intro' ? 'Open the counter' : 'Back to work'}</button>`;
-    $('cardGo').onclick = () => { $('card').hidden = true; if (!started){ started = true; unlockAudio(); } else if (paused) togglePause(); };
+    $('cardGo').onclick = () => { $('card').hidden = true; if (!started){ run = freshRun(); started = true; unlockAudio(); } else if (paused) togglePause(); };
+    if (kind === 'intro') wireDifficulty();
   }
   $('card').hidden = false;
   $('cardGo')?.focus();
@@ -210,17 +214,17 @@ function showCard(kind){
 function showSummary(){
   if (summaryShown) return; summaryShown = true;
   closePhone();
-  const tk = S.takings(run), st = S.stars(run), hit = tk >= DAY.target, m = v => `$${Math.round(v)}`;
+  const tk = S.takings(run), st = S.stars(run), hit = tk >= run.target, m = v => `$${Math.round(v)}`;
   if (hit) sfx.levelUp();
   $('cardBody').innerHTML = `
     <h2><span class="zh">收工</span>${hit ? 'Target hit!' : 'Closing time'}</h2>
     <p class="stars" aria-label="${st} of 3 stars">${'★'.repeat(st)}<span>${'★'.repeat(3 - st)}</span></p>
-    <p class="big">${m(tk)} taken <small>of a $${DAY.target} target</small></p>
+    <p class="big">${m(tk)} taken <small>of a $${run.target} target · ${run.cfgLabel}</small></p>
     <dl class="sum">
       <dt>Sales</dt><dd>${m(run.sales)}</dd>
       <dt>Tips</dt><dd>${m(run.tips)}</dd>
-      <dt>Stock ordered</dt><dd class="neg">−${m(run.stockSpent)}</dd>
-      <dt>Waste and messes</dt><dd class="neg">−${m(run.waste)}</dd>
+      <dt>Stock ordered</dt><dd class="${run.stockSpent ? 'neg' : ''}">${run.stockSpent ? '−' : ''}${m(run.stockSpent)}</dd>
+      <dt>Waste and messes</dt><dd class="${run.waste ? 'neg' : ''}">${run.waste ? '−' : ''}${m(run.waste)}</dd>
       <dt>Profit for the morning</dt><dd><b>${m(S.net(run))}</b></dd>
     </dl>
     <dl class="sum small">
@@ -229,10 +233,36 @@ function showSummary(){
       <dt>Messes</dt><dd>${run.messes}</dd>
       <dt>Burnt or stewed</dt><dd>${run.burnt}</dd>
     </dl>
+    ${difficultyHTML('For the next round')}
     <div class="row"><button type="button" class="go" id="againBtn">Play again</button><a class="ghost" href="../#hongkong">Back to all restaurants</a></div>`;
-  $('againBtn').onclick = () => { run = S.newRun(); summaryShown = false; paused = false; $('card').hidden = true; ui.floats = []; };
+  wireDifficulty();
+  $('againBtn').onclick = () => { run = freshRun(); summaryShown = false; paused = false; $('card').hidden = true; ui.floats = []; };
   $('card').hidden = false;
   $('againBtn').focus();
+}
+
+// ---------- difficulty ----------
+function difficultyHTML(title = 'Difficulty'){
+  const p = matchesPreset(settings) ? settings.preset : -1;
+  return `<fieldset class="diff">
+    <legend>${title}: <b id="diffName">${settingsLabel(settings)}</b></legend>
+    <input id="diffPreset" type="range" min="0" max="${PRESETS.length - 1}" step="1" value="${p < 0 ? settings.preset : p}" aria-label="Difficulty preset">
+    <div class="ticks">${PRESETS.map(q => `<span>${q.name}</span>`).join('')}</div>
+    <details${p < 0 ? ' open' : ''}><summary>Fine-tune</summary>
+      ${KNOBS.map(k => `<label class="knob"><span>${k.label}<small>${k.hint}</small></span>
+        <input type="range" data-knob="${k.id}" min="${k.min}" max="${k.max}" step="${k.step}" value="${settings[k.id]}"><output data-for="${k.id}">${k.fmt(settings[k.id])}</output></label>`).join('')}
+    </details>
+  </fieldset>`;
+}
+function wireDifficulty(){
+  const box = document.querySelector('.diff'); if (!box) return;
+  const sync = () => {
+    box.querySelector('#diffName').textContent = settingsLabel(settings);
+    for (const k of KNOBS){ box.querySelector(`[data-knob="${k.id}"]`).value = settings[k.id]; box.querySelector(`[data-for="${k.id}"]`).textContent = k.fmt(settings[k.id]); }
+    saveSettings(settings);
+  };
+  box.querySelector('#diffPreset').oninput = e => { const i = +e.target.value; settings = { ...settings, ...PRESETS[i], preset: i }; delete settings.name; delete settings.zh; sync(); };
+  box.querySelectorAll('[data-knob]').forEach(inp => inp.oninput = () => { settings = { ...settings, [inp.dataset.knob]: +inp.value }; sync(); });
 }
 
 // ---------- the loop ----------
