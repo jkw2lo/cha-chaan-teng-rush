@@ -144,8 +144,7 @@ function endEdit(){
 }
 function refreshEditor(){
   if (!ui.edit) return;
-  UI.renderEditor(S, ui);
-  for (const cv of $('editor').querySelectorAll('canvas[data-thumb]')) thumb(cv, cv.dataset.thumb);
+  if (UI.renderEditor(S, ui)) for (const cv of $('editor').querySelectorAll('canvas[data-thumb]')) thumb(cv, cv.dataset.thumb);
 }
 function thumb(cv, type){
   const c = cv.getContext('2d'), kind = DECOR[type].kind;
@@ -388,16 +387,34 @@ function handleClick(e, another){
   if (r.msg) UI.flash(r.msg, r.added || r.removed ? 'info' : 'bad');
 }
 canvas.addEventListener('click', e => handleClick(e, false));
-canvas.addEventListener('contextmenu', e => { e.preventDefault(); handleClick(e, true); });
+canvas.addEventListener('contextmenu', e => {
+  e.preventDefault();
+  if (ui.edit){ if (ui.edit.ghostItem){ drag = null; preview.hidden = true; document.body.classList.remove('dragging'); Ed.cancelPlacing(ui); refreshEditor(); } return; }
+  handleClick(e, true);
+});
 
 // ---------- drag and drop while editing ----------
 // move: press on something in the room and drag it. buy: press on a catalogue card and drag it in.
 // place: a card was clicked (not dragged), so the next click in the room drops it.
 let drag = null;
+// A small picture of the piece that follows the pointer until it's over the room (where the ghost takes over).
+const preview = document.createElement('canvas');
+preview.className = 'dragpreview'; preview.width = 120; preview.height = 96; preview.hidden = true;
+document.body.appendChild(preview);
+function showPreview(type){
+  const c = preview.getContext('2d'); c.clearRect(0, 0, preview.width, preview.height);
+  if (ui.edit.room === 'kitchen'){ const ap = APPLIANCES[type]; if (ap.makes) c.drawImage(A.iconCanvas(ap.makes), 20, 8, 80, 80); else { const f = new Iso(c, 40, 60, 40); A.drawStation(f, { id: 0, type, x: 0, y: 0, dir: 'S' }, 0, false); } }
+  else thumb(preview, type);
+}
+function movePreview(cx, cy, overRoom){
+  preview.hidden = overRoom;
+  preview.style.left = cx + 'px'; preview.style.top = cy + 'px';
+}
 function ghostAt(cx, cy){
-  const r = canvas.getBoundingClientRect();
-  if (document.elementFromPoint(cx, cy) === canvas) Ed.updateGhost(S, R, ui, frame.iso, cx - r.left, cy - r.top);
+  const r = canvas.getBoundingClientRect(), over = document.elementFromPoint(cx, cy) === canvas;
+  if (over) Ed.updateGhost(S, R, ui, frame.iso, cx - r.left, cy - r.top);
   else ui.edit.ghost = null;
+  if (drag && drag.mode !== 'place') movePreview(cx, cy, over);
 }
 $('editor').addEventListener('pointerdown', e => {
   const b = e.target.closest('button[data-buy]');
@@ -407,6 +424,7 @@ $('editor').addEventListener('pointerdown', e => {
   if (msg){ UI.flash(msg, 'bad'); return; }
   drag = { mode: 'buy', x0: e.clientX, y0: e.clientY, moved: false };
   document.body.classList.add('dragging');
+  showPreview(b.dataset.buy);
   refreshEditor();
 });
 canvas.addEventListener('pointerdown', e => {
@@ -426,6 +444,7 @@ window.addEventListener('pointermove', e => {
       const msg = Ed.beginMove(S, ui, drag.id);
       if (msg){ UI.flash(msg, 'bad'); drag = null; return; }
       document.body.classList.add('dragging');
+      showPreview(ui.edit.ghostItem.type);
       refreshEditor();
     }
   }
@@ -433,7 +452,7 @@ window.addEventListener('pointermove', e => {
 });
 window.addEventListener('pointerup', e => {
   const d = drag; drag = null;
-  document.body.classList.remove('dragging');
+  document.body.classList.remove('dragging'); preview.hidden = true;
   if (!d || !ui.edit) return;
   if (d.mode === 'move' && !d.moved) return;                       // a plain click just selects
   if (d.mode === 'buy' && !d.moved){ refreshEditor(); return; }     // clicked a card: click a spot next
@@ -481,7 +500,7 @@ $('itemBar').addEventListener('click', e => {
 window.addEventListener('keydown', e => {
   if (e.target.closest && e.target.closest('input, textarea')) return;
   if (e.key === 'Escape'){
-    if (ui.edit && ui.edit.ghostItem){ drag = null; document.body.classList.remove('dragging'); Ed.cancelPlacing(ui); refreshEditor(); }
+    if (ui.edit && ui.edit.ghostItem){ drag = null; preview.hidden = true; document.body.classList.remove('dragging'); Ed.cancelPlacing(ui); refreshEditor(); }
     else if (ui.edit && ui.edit.selected){ ui.edit.selected = null; refreshEditor(); }
     else if (ui.edit) endEdit();
     else if (ui.drawerOpen) closeDrawer();

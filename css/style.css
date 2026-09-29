@@ -572,3 +572,7 @@ body.resizing, body.resizing *{cursor:col-resize !important; user-select:none}
 /* a delivery lights up its inventory row for a moment instead of popping up over the shop */
 .arr{color:#237a45; font-weight:700}
 .inv.arrived{background:#e3f4e5; border-radius:8px}
+
+/* the piece being dragged, under the pointer until it reaches the room */
+.dragpreview{position:fixed; z-index:30; width:90px; height:72px; margin:-36px 0 0 -45px; pointer-events:none; filter:drop-shadow(0 6px 10px rgba(0,0,0,.35)); opacity:.92}
+.dragpreview[hidden]{display:none}

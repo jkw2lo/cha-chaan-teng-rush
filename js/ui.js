@@ -256,11 +256,18 @@ export function renderEditor(S, ui){
   const amb = ambience(S);
   const ambLine = kitchen ? '' : `<div class="ambline"><span>Ambience <b>${amb.total}</b> · ${amb.tier.zh} ${amb.tier.name}${amb.next ? ` (${amb.next.min - amb.total} to ${amb.next.name.toLowerCase()})` : ''}</span>
       ${amb.styles.map(g => `<span class="set">${STYLES[g.style].zh} ${g.n} pieces <b>×${g.mult.toFixed(2)}</b></span>`).join('')}</div>`;
-  el.innerHTML = `
+  const html = `
     <div class="ehead"><h2><span class="zh">${kitchen ? '廚房' : '裝修'}</span> ${kitchen ? 'Kitchen layout' : 'Dining room'}</h2>
       <span class="cash">${fmtMoney(S.money)}</span><span class="paused">Game paused</span><button class="primary" data-done>Done</button></div>
     ${status}${ambLine}${selBar}${filters}
     <div class="cards">${cards}</div>`;
+  if (el._html === html) return false;                    // nothing changed: leave the panel (and its scroll) alone
+  // keep the list where it was scrolled to, unless the room or a filter changed
+  const list = el.querySelector('.cards'), view = `${E.room}|${E.style}|${E.cat}`;
+  const top = list && el._view === view ? list.scrollTop : 0;
+  el._html = html; el._view = view; el.innerHTML = html;
+  el.querySelector('.cards').scrollTop = top;
+  return true;
 }
 const kindName = k => ({ table: 'Tables', seat: 'Seats', block: 'Counters & plants', ceiling: 'Ceiling', wall: 'Wall', floor: 'Floors' })[k] || k;
 function card(k, name, zh, detail, price, money, art, cls, gain){

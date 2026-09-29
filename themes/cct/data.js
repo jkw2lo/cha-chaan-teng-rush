@@ -156,7 +156,7 @@ export const GOALS = [
 export const STARTING = {
   money: 400,
   popularity: 30,
-  stock: { tea: 16, milk: 12, ice: 0, bun: 12, butter: 0 },
+  stock: { tea: 8, milk: 6, ice: 0, bun: 6, butter: 0 },         // a first order comes due early on day 1
   unlocked: ['hotTea', 'bun'],
 };
 
