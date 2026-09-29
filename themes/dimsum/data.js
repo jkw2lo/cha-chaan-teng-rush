@@ -105,7 +105,24 @@ export const DECOR = {
   bigPlant:     { style: 'modern', kind: 'block',   name: 'Fiddle-leaf fig',     zh: '琴葉榕', price: 90,  appeal: 8 },
   terrazzo:     { style: 'modern', kind: 'floor',   name: 'Terrazzo',            zh: '水磨石', price: 500, appeal: 28 },
 
+  // more for each style
+  couplets:     { style: 'banquet', kind: 'wall',    name: 'Red couplets',        zh: '對聯',   price: 120, appeal: 8 },
+  lanternString:{ style: 'banquet', kind: 'ceiling', name: 'String of lanterns',  zh: '燈籠串', price: 150, appeal: 9 },
+  porcelainVase:{ style: 'banquet', kind: 'block',   name: 'Blue-and-white vase', zh: '青花瓶', price: 260, appeal: 12 },
+  rosewoodChair:{ style: 'teahouse', kind: 'seat',   name: 'Rosewood armchair',   zh: '酸枝椅', price: 140, appeal: 7 },
+  calligraphy:  { style: 'teahouse', kind: 'wall',   name: 'Calligraphy scroll',  zh: '書法掛軸', price: 110, appeal: 8 },
+  latticePanel: { style: 'teahouse', kind: 'wall',   name: 'Carved lattice window', zh: '木窗花', price: 160, appeal: 10 },
+  bambooLamp:   { style: 'teahouse', kind: 'ceiling', name: 'Woven bamboo lamp',  zh: '竹燈',   price: 120, appeal: 8 },
+  bonsai:       { style: 'teahouse', kind: 'block',  name: 'Bonsai on a stand',   zh: '盆景',   price: 180, appeal: 10 },
+  teaCabinet:   { style: 'teahouse', kind: 'block',  name: 'Tea-tin cabinet',     zh: '茶葉櫃', price: 240, appeal: 12 },
+  velvetBooth:  { style: 'modern', kind: 'seat',    name: 'Velvet booth seat',   zh: '絲絨卡座', price: 150, appeal: 8 },
+  brassLamp:    { style: 'modern', kind: 'ceiling', name: 'Brass globe cluster', zh: '銅吊燈', price: 220, appeal: 12 },
+  greenWall:    { style: 'modern', kind: 'wall',    name: 'Living plant wall',   zh: '植物牆', price: 260, appeal: 13 },
+  herringbone:  { style: 'modern', kind: 'floor',   name: 'Herringbone parquet', zh: '人字地板', price: 480, appeal: 27 },
+
   // premium pieces
+  goldMarble:   { style: 'banquet', kind: 'floor',  name: 'Gold-veined marble',  zh: '金紋雲石', price: 900, appeal: 36, level: 7 },
+  koiPond:      { style: 'teahouse', kind: 'block', name: 'Koi pond',            zh: '錦鯉池', price: 850, appeal: 28, level: 7 },
   dragonMural:  { style: 'banquet', kind: 'wall',   name: 'Dragon & phoenix wall', zh: '龍鳳壁畫', price: 650, appeal: 24, level: 6 },
   fishTank:     { style: 'teahouse', kind: 'block', name: 'Live seafood tank',    zh: '海鮮缸', price: 700, appeal: 24, level: 8 },
   chandelier:   { style: 'banquet', kind: 'ceiling', name: 'Crystal chandelier',  zh: '水晶吊燈', price: 1400, appeal: 40, level: 10 },

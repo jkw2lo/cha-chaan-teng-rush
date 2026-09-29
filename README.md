@@ -113,6 +113,16 @@ Rearranging only happens between days: before you open, or from the end-of-day s
 
 Copy `themes/dimsum` to `themes/<id>`, change its `index.js`, `data.js` and `art.js` (anything you don't draw can fall through to another theme's art), add the id to `GAMES` in `js/main.js`, `js/ui.js` and `tools/pages.mjs`, run `node tools/pages.mjs`, and add a card to `index.html`.
 
+Besides `icon`, `floor`, `station`, `decor`, `ceiling` and `wallItem`, a theme's `art.js` can optionally export these to restyle the shared room (Dim Sum uses all of them; the cha chaan teng uses none):
+
+- `wallSegment(iso, pts, kitchen)`: draw one wall strip; return `true` to replace the default.
+- `wallFace(face, x, y, iso)`: panelling on each dining-wall cell.
+- `windowFrame(c)`, `sign(c)`, `room(iso, dw, door)`, `partition(iso, x)`, `kitchenWall(iso)`: window lattice, shop sign, extra room pieces (pillars), the kitchen half wall, and what hangs on the kitchen wall.
+- `trolley(iso, x, y, face, t)`: the cart a waiter pushes (with `meta.trolley`).
+- `serve(iso, items, tx, ty, dx, dy, progress)`: how a served order sits on the table.
+
+`meta.uniform` dresses the staff (`{ waiter: { shirt, vest, trim, bow } }`), and `meta.palette` can set `cap` (the wall-top colour) alongside the other wall and floor colours.
+
 ## Adding a menu item
 
 1. Add any new ingredient to `INGREDIENTS` in the theme's `data.js`.

@@ -159,7 +159,7 @@ export function floor(iso, type, x, y){
     }
   } else if (type === 'mosaic'){
     for (let i = 0; i < 4; i++) for (let j = 0; j < 4; j++){
-      const gx = x * 4 + i, gy = y * 4 + j, m = MOSAIC[gy % 4][gx % 4];
+      const gx = x * 4 + i, gy = y * 4 + j, m = MOSAIC[(gy % 4 + 4) % 4][(gx % 4 + 4) % 4];
       const col = m === 'g' ? '#4f917a' : m === 'y' ? '#d9b44a' : ((gx + gy) % 2 ? '#eef0e6' : '#e6e9dd');
       const a = x + i / 4, b = y + j / 4;
       iso.poly([[a, b, 0], [a + .25, b, 0], [a + .25, b + .25, 0], [a, b + .25, 0]], col, 'rgba(120,120,110,.25)');

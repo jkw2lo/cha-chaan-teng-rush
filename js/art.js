@@ -49,6 +49,7 @@ export function diningFloor(iso, type, x, y){
 function wallSegment(iso, pts, kitchen){
   // pts: bottom-left and bottom-right of a segment in world coords, drawn to full height
   const [[ax, ay], [bx, by]] = pts;
+  if (THEME.art.wallSegment && THEME.art.wallSegment(iso, pts, kitchen)) return;
   if (kitchen){
     iso.poly([[ax, ay, 0], [bx, by, 0], [bx, by, WALL_H], [ax, ay, WALL_H]], PAL.tile);
     return;
@@ -84,10 +85,12 @@ export function drawWalls(iso, dw, door){
     for (let u = 0; u <= 100; u += 12.5){ c.beginPath(); c.moveTo(u, 0); c.lineTo(u, -95); c.stroke(); }
     for (let v = 0; v >= -95; v -= 12){ c.beginPath(); c.moveTo(0, v); c.lineTo(100, v); c.stroke(); }
   });
-  for (let x = 0; x < dw; x++) if (x !== door) tiles('wallN', x, 0);
-  for (let y = 0; y < DH; y++) tiles('wallW', 0, y);
+  const face = THEME.art.wallFace || tiles;          // a theme can panel its dining walls its own way
+  for (let x = 0; x < dw; x++) if (x !== door) face('wallN', x, 0, iso);
+  for (let y = 0; y < DH; y++) face('wallW', 0, y, iso);
+  if (THEME.art.kitchenWall) THEME.art.kitchenWall(iso);
   // kitchen wall: a utensil rail with ladles and a strainer, and a shelf of jars
-  iso.onFace('wallW', 0, DH + 1, c => {
+  else iso.onFace('wallW', 0, DH + 1, c => {
     c.fillStyle = '#8a9096'; c.fillRect(-90, -178, 180, 4);
     const tools = [[-70, 'ladle'], [-40, 'spatula'], [-8, 'ladle'], [24, 'strainer'], [56, 'ladle']];
     for (const [u, k] of tools){
@@ -97,7 +100,7 @@ export function drawWalls(iso, dw, door){
       else { c.fillRect(u - 7, -138, 14, 10); }
     }
   });
-  iso.onFace('wallW', 0, DH + 4, c => {
+  if (!THEME.art.kitchenWall) iso.onFace('wallW', 0, DH + 4, c => {
     c.fillStyle = '#7a5230'; c.fillRect(-80, -150, 170, 7);
     const jars = ['#c8372d', '#f2c14e', '#3f8f6b', '#e9e4d6', '#b8743f', '#c8372d', '#6f9cc7'];
     jars.forEach((col, i) => { const u = -74 + i * 23; c.fillStyle = col; c.fillRect(u, -178, 16, 28); c.fillStyle = 'rgba(255,255,255,.35)'; c.fillRect(u + 2, -176, 4, 22); c.fillStyle = '#5a5a5a'; c.fillRect(u - 1, -182, 18, 5); });
@@ -110,9 +113,11 @@ export function drawWalls(iso, dw, door){
 
   // caps along the top
   const T = .14;
-  iso.poly([[0, 0, WALL_H], [dw, 0, WALL_H], [dw, -T, WALL_H], [-T, -T, WALL_H], [-T, DH + KH, WALL_H], [0, DH + KH, WALL_H]], '#5d6b64');
+  iso.poly([[0, 0, WALL_H], [dw, 0, WALL_H], [dw, -T, WALL_H], [-T, -T, WALL_H], [-T, DH + KH, WALL_H], [0, DH + KH, WALL_H]], PAL.cap || '#5d6b64');
+  if (THEME.art.room) THEME.art.room(iso, dw, door);  // anything else the theme adds to the shell (pillars, trim)
   // shop sign
-  iso.onFace('wallN', 0, 0, c => {
+  if (THEME.art.sign) iso.onFace('wallN', 0, 0, c => THEME.art.sign(c));
+  else iso.onFace('wallN', 0, 0, c => {
     c.fillStyle = '#9e1f19'; c.fillRect(22, -236, 316, 38);
     c.strokeStyle = PAL.gold; c.lineWidth = 2.5; c.strokeRect(27, -231, 306, 28);
     c.fillStyle = PAL.gold; c.font = `900 25px ${HAN}`; c.textAlign = 'center'; c.textBaseline = 'middle';
@@ -120,6 +125,7 @@ export function drawWalls(iso, dw, door){
   });
 }
 export function drawPartition(iso, x){
+  if (THEME.art.partition) return THEME.art.partition(iso, x);
   const y0 = DH - .07, y1 = DH + .07;
   iso.box(x, y0, x + 1, y1, 0, PARTITION_H - .1, PAL.dado, { topCol: PAL.dado });
   iso.box(x - .01, y0 - .03, x + 1.01, y1 + .03, PARTITION_H - .1, PARTITION_H, PAL.wood);
@@ -170,7 +176,8 @@ export function drawWindows(iso, hour){
       cc.fillStyle = gr; cc.fillRect(11, -194, 78, 92);
       cc.fillStyle = 'rgba(60,70,80,.55)';                   // buildings across the street
       for (const [u, w, h] of [[12, 16, 36], [30, 22, 54], [54, 14, 30], [70, 18, 46]]) cc.fillRect(u, -102 - h, w, h);
-      cc.fillStyle = '#6d4a31'; cc.fillRect(48, -194, 4, 92); cc.fillRect(11, -150, 78, 4);
+      if (THEME.art.windowFrame) THEME.art.windowFrame(cc);
+      else { cc.fillStyle = '#6d4a31'; cc.fillRect(48, -194, 4, 92); cc.fillRect(11, -150, 78, 4); }
       cc.fillStyle = 'rgba(255,255,255,.18)'; cc.beginPath(); cc.moveTo(16, -194); cc.lineTo(28, -194); cc.lineTo(16, -120); cc.lineTo(11, -120); cc.closePath(); cc.fill();
     });
   }
@@ -283,6 +290,7 @@ function blob(c, x, y, r, col, lw){ c.beginPath(); c.arc(x, y, r, 0, TAU); c.fil
 
 // A dim sum trolley: steel cart with stacked bamboo steamers, pushed ahead of the waiter.
 export function drawTrolley(iso, x, y, face, t){
+  if (THEME.art.trolley) return THEME.art.trolley(iso, x, y, face, t);
   const [dx, dy] = DIRS[face] || [0, 1], cx = x + dx * .42, cy = y + dy * .42;
   contactShadow(iso, cx - .22, cy - .22, cx + .22, cy + .22, .22);
   iso.box(cx - .2, cy - .2, cx + .2, cy + .2, .12, .5, '#b9c0c7', { material: 'steel' });
@@ -300,7 +308,8 @@ export function drawPerson(iso, p, t){
   const lw = Math.max(1, k * .022);
   const ph = t * 9 + (p.x + p.y) * 2.3;
   const skin = L.skin || '#e6b58c', hair = L.hair || '#1f1a17';
-  const shirt = role === 'customer' ? L.shirt : '#fbfbf8';
+  const U = (THEME.meta.uniform || {})[role] || {};    // a theme can dress its staff
+  const shirt = role === 'customer' ? L.shirt : (U.shirt || '#fbfbf8');
   const pants = role === 'cook' ? '#3b3f47' : role === 'waiter' ? '#1d1d20' : (L.pants || '#3a3f4b');
   const style = L.style || 'short';
 
@@ -365,10 +374,14 @@ export function drawPerson(iso, p, t){
 
   if (role === 'waiter'){
     c.save(); c.clip();
-    c.fillStyle = '#1f1f22';
+    c.fillStyle = U.vest || '#1f1f22';
     c.beginPath(); c.moveTo(ox - k * .2, shY); c.lineTo(ox - k * .04, shY); c.lineTo(ox, shY + k * .2); c.lineTo(ox + k * .04, shY); c.lineTo(ox + k * .2, shY); c.lineTo(ox + k * .2, hipY + k * .05); c.lineTo(ox - k * .2, hipY + k * .05); c.closePath(); c.fill();
     c.restore();
-    if (!back){ c.fillStyle = '#c8372d'; c.beginPath(); c.moveTo(ox, shY + k * .03); c.lineTo(ox - k * .05, shY); c.lineTo(ox - k * .05, shY + k * .06); c.closePath(); c.moveTo(ox, shY + k * .03); c.lineTo(ox + k * .05, shY); c.lineTo(ox + k * .05, shY + k * .06); c.closePath(); c.fill(); }
+    if (U.trim && !back){                            // piping down the vest's front edges
+      c.strokeStyle = U.trim; c.lineWidth = Math.max(1, k * .02);
+      c.beginPath(); c.moveTo(ox - k * .04, shY); c.lineTo(ox, shY + k * .2); c.lineTo(ox + k * .04, shY); c.moveTo(ox, shY + k * .2); c.lineTo(ox, hipY); c.stroke();
+    }
+    if (!back){ c.fillStyle = U.bow || '#c8372d'; c.beginPath(); c.moveTo(ox, shY + k * .03); c.lineTo(ox - k * .05, shY); c.lineTo(ox - k * .05, shY + k * .06); c.closePath(); c.moveTo(ox, shY + k * .03); c.lineTo(ox + k * .05, shY); c.lineTo(ox + k * .05, shY + k * .06); c.closePath(); c.fill(); }
   } else if (role === 'cook'){
     c.fillStyle = '#efeae0'; c.strokeStyle = OUTLINE; c.lineWidth = lw;
     c.beginPath(); c.roundRect(ox - k * .12, hipY - k * .14, k * .24, k * .34, k * .03); c.fill(); c.stroke();
@@ -379,7 +392,7 @@ export function drawPerson(iso, p, t){
   }
 
   // arms
-  const sleeve = role === 'waiter' ? '#fbfbf8' : shirt;
+  const sleeve = role === 'waiter' ? (U.shirt || '#fbfbf8') : shirt;
   for (const side of [-1, 1]){
     const sx = ox + side * k * .155, sy = shY + k * .05;
     let hx2 = ox + side * k * .19, hy2 = hipY - k * .02;

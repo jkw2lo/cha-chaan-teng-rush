@@ -150,6 +150,11 @@ function refreshEditor(){
 function thumb(cv, type){
   const c = cv.getContext('2d'), kind = DECOR[type].kind;
   c.clearRect(0, 0, cv.width, cv.height);
+  if (kind === 'floor'){                         // a patch of the real floor, filling the swatch
+    const f = new Iso(c, 26, cv.width / 2, cv.height / 2 - 1.5 * 26);
+    for (let x = -2; x < 5; x++) for (let y = -2; y < 5; y++) A.diningFloor(f, type, x, y);
+    return;
+  }
   const iso = new Iso(c, 40, 60, kind === 'ceiling' ? 104 : kind === 'wall' ? 108 : 40);
   const it = { id: 0, type, x: 0, y: 0, dir: 'E' };
   if (kind === 'wall'){ iso.poly([[0, 0, .9], [1, 0, .9], [1, 0, 2], [0, 0, 2]], A.PAL.mint); A.drawWallItem(iso, it, 0, 9.3); }

@@ -200,6 +200,7 @@ export function draw(ctx, cssW, cssH, dpr, S, R, ui, t){
 
 function drawFood(iso, c, tx, ty, dx, dy, now){
   const n = c.food.length, prog = Math.min(1, (now - c.eatStart) / (c.eatUntil - c.eatStart)), g = iso.ctx;
+  if (THEME.art.serve) return THEME.art.serve(iso, c.food, tx, ty, dx, dy, prog);   // the theme sets its own table
   c.food.forEach((it, i) => {
     const off = (i - (n - 1) / 2) * .24;
     const fx = tx + .5 - dx * .2 + (dy ? off : 0), fy = ty + .5 - dy * .2 + (dx ? off : 0);

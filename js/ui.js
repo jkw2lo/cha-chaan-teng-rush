@@ -228,8 +228,10 @@ export function renderEditor(S, ui){
     const floorCards = Object.entries(DECOR).filter(([k, d]) => d.kind === 'floor' && (E.style === 'all' || d.style === E.style) && (E.cat === 'all' || E.cat === 'floor'))
       .map(([k, d]) => {
         const owned = S.dining.ownedFloors.includes(k), using = S.dining.floor === k;
+        const sw = `<canvas class="thumb" data-thumb="${k}" width="140" height="88"></canvas>`;
+        if (!owned && (d.level || 0) > level(S)) return `<button class="card floor locked" disabled title="Opens at level ${d.level}">${sw}<b>${d.name}</b><small>${d.zh} · ${STYLES[d.style].zh}</small><em>Level ${d.level}</em></button>`;
         return `<button class="card floor ${using ? 'using' : ''}" data-floor="${k}" ${!owned && d.price > S.money ? 'disabled' : ''}>
-          <span class="thumb floor-${k}"></span><b>${d.name}</b><small>${d.zh} · ${STYLES[d.style].zh}</small>
+          ${sw}<b>${d.name}</b><small>${d.zh} · ${STYLES[d.style].zh}</small>
           ${using ? '' : `<span class="gain">+${appealGain(S, k)} ambience</span>`}<em>${using ? 'In use' : owned ? 'Owned · use' : fmtMoney(d.price)}</em></button>`;
       }).join('');
     const items = Object.entries(DECOR).filter(([k, d]) => d.kind !== 'floor' && !d.hidden && (E.style === 'all' || d.style === E.style) && (E.cat === 'all' || E.cat === d.kind))

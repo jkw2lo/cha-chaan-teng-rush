@@ -17,7 +17,8 @@ export const meta = {
   trolley: true,              // waiters push a trolley out to the tables
   passOverflow: 'discard',
   targetScale: .92,           // many small baskets: slightly gentler sales targets    // a full trolley sheds its oldest unwanted basket instead of making the cook wait
-  palette: { mint: '#efe0bf', dado: '#7e1a16', band: '#d9a93b', kitchenA: '#8e9a96', kitchenB: '#a3aea9' },
+  uniform: { waiter: { shirt: '#fbfbf8', vest: '#7e1a16', trim: '#d9a93b', bow: '#d9a93b' } },   // maroon vests with gold piping
+  palette: { mint: '#efe0bf', dado: '#7e1a16', band: '#d9a93b', kitchenA: '#8e9a96', kitchenB: '#a3aea9', wood: '#4a2016', cap: '#3a120e' },
   lang: { voice: 'zh-HK', name: 'Cantonese', romanisation: 'Jyutping' },
   splash: {
     board: '飲茶', word: 'RUSH',
