@@ -1,0 +1,53 @@
+/* Counter Rush: the page around the canvas. Shares css/style.css for the colours and the splash. */
+body.counter{display:flex; flex-direction:column; height:100vh; background:#0f231e; overflow:hidden; user-select:none; -webkit-user-select:none}
+.cbar{display:flex; align-items:center; gap:18px; padding:8px 16px; background:var(--chrome); border-bottom:1px solid var(--line)}
+.cbar .home{color:#cfd8d2; text-decoration:none; font-weight:700}
+.cbar .home:hover{color:#fff}
+.cbar .title{font:700 18px var(--slab)} .cbar .title .zh{color:var(--gold); margin-right:4px}
+.cbar .title small{font:700 11px var(--body); letter-spacing:.08em; text-transform:uppercase; color:var(--muted); background:rgba(255,255,255,.08); padding:2px 8px; border-radius:99px; margin-left:6px}
+.cbar .btns{margin-left:auto; display:flex; gap:8px}
+.cbar button{background:var(--chrome3); color:#fff; border:1px solid var(--line); border-radius:8px; padding:6px 12px; font-weight:700}
+.cbar button:hover{background:#34594d}
+#wrap{flex:1; min-height:0; display:grid; place-items:center; position:relative; padding:8px}
+#stage{display:block; border-radius:10px; box-shadow:0 10px 30px rgba(0,0,0,.45); touch-action:none}
+.ctoast{position:absolute; left:50%; bottom:24px; transform:translateX(-50%); background:#15302a; color:#fff; padding:10px 18px; border-radius:99px;
+  font-weight:700; box-shadow:0 6px 18px rgba(0,0,0,.4); pointer-events:none; border:2px solid var(--gold); max-width:90vw; text-align:center}
+.ctoast.bad{border-color:#ff8a7a}
+
+.cmodal{position:fixed; inset:0; background:rgba(8,14,12,.6); display:grid; place-items:center; z-index:50; padding:16px}
+.ccard{background:var(--paper2); color:var(--ink); border-radius:14px; padding:22px 26px; width:min(720px, 100%); max-height:calc(100vh - 32px); overflow:auto;
+  box-shadow:0 20px 50px rgba(0,0,0,.5)}
+.ccard h2{font:700 26px var(--slab); margin:0 0 8px; display:flex; align-items:baseline; gap:10px}
+.ccard h2 .zh{color:var(--red); font-size:24px}
+.ccard p{margin:0 0 10px}
+.ccard .muted{color:var(--muted)}
+.ccard .go{background:var(--red); color:#fff; border:0; border-radius:10px; padding:10px 22px; font:700 17px var(--slab); box-shadow:0 3px 0 var(--red2)}
+.ccard .ghost{background:none; border:1px solid #cbbfa8; color:var(--ink); border-radius:10px; padding:9px 16px; font-weight:700; text-decoration:none; display:inline-block}
+.recipes{list-style:none; padding:0; margin:10px 0 14px; display:grid; grid-template-columns:1fr 1fr; gap:10px}
+.recipes > li{display:flex; gap:10px; align-items:flex-start; background:#fff; border-radius:10px; padding:10px; box-shadow:inset 0 0 0 1px #eadfca}
+.recipes img{width:56px; height:56px; flex:none}
+.recipes b{font:700 15px var(--slab)} .recipes b .zh{font-size:17px; color:var(--red)}
+.recipes em{font-style:normal; font-weight:700; color:var(--green)}
+.recipes ol{margin:4px 0 0; padding-left:18px; font-size:13px; color:#4a4038}
+.how{font-size:14px; color:#4a4038; background:#f4ecd8; border-radius:10px; padding:10px 14px; margin-bottom:14px}
+.how p{margin:0 0 6px} .how p:last-child{margin:0}
+.how .g{color:var(--green); font-weight:700}
+.stars{font-size:40px; color:#e3a21a; margin:0; letter-spacing:.1em} .stars span{color:#dcd2bf}
+.big{font:700 28px var(--slab)} .big small{font:500 15px var(--body); color:var(--muted)}
+.sum{display:grid; grid-template-columns:1fr auto; gap:4px 20px; margin:6px 0 12px; padding:10px 14px; background:#fff; border-radius:10px; box-shadow:inset 0 0 0 1px #eadfca}
+.sum dt{color:#4a4038} .sum dd{margin:0; text-align:right; font-weight:700}
+.sum dd.neg{color:var(--red)}
+.sum.small{font-size:13.5px}
+.row{display:flex; gap:12px; align-items:center; flex-wrap:wrap}
+
+.phonecard h2 .cash{margin-left:auto; font:500 14px var(--body); color:var(--muted)} .phonecard h2 .cash b{color:var(--ink); font-size:18px}
+.phonelist{list-style:none; padding:0; margin:8px 0 14px; display:grid; gap:6px}
+.phonelist li{display:grid; grid-template-columns:64px 1fr auto auto; gap:10px; align-items:center; background:#fff; border-radius:10px; padding:8px 10px; box-shadow:inset 0 0 0 1px #eadfca}
+.phonelist li.low{box-shadow:inset 0 0 0 2px #e7a197}
+.phonelist .zh{font-size:18px; color:var(--red)}
+.phonelist .nm{font-weight:700} .phonelist .nm small{display:block; font-weight:500; color:var(--muted)}
+.phonelist button{border:0; border-radius:8px; padding:6px 10px; background:#3f7fae; color:#fff; font-weight:700; white-space:nowrap}
+.phonelist button.express{background:#e39b2d}
+.phonelist button small{opacity:.85; margin-left:2px}
+.phonelist .coming{grid-column:3 / 5; color:#3f7fae; font-weight:700; text-align:right}
+@media (max-width:640px){ .recipes{grid-template-columns:1fr} .phonelist li{grid-template-columns:48px 1fr; } .phonelist .coming{grid-column:1 / -1} }

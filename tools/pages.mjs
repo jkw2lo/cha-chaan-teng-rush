@@ -20,3 +20,8 @@ for (const id of GAMES){
   await writeFile(`${ROOT}${id}/index.html`, page);
   console.log(`wrote ${id}/index.html`);
 }
+
+// Counter Rush has its own hand-written page; just refresh its version stamps.
+const counter = ROOT + 'counter/index.html';
+await writeFile(counter, (await readFile(counter, 'utf8')).replace(/\?v=[0-9a-z]+/g, `?v=${v}`));
+console.log('stamped counter/index.html');

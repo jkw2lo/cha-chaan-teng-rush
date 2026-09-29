@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+<!-- Counter Rush. Hand-written (not generated); tools/pages.mjs only refreshes the ?v= stamps. -->
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Counter Rush</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Karla:wght@400;500;700&family=Noto+Serif+TC:wght@700;900&family=Zilla+Slab:wght@600;700&display=swap">
+<link rel="stylesheet" href="../css/style.css?v=mumbzdly">
+<link rel="stylesheet" href="counter.css?v=mumbzdly">
+</head>
+<body class="counter">
+<header class="cbar">
+  <a class="home" href="../#hongkong">← Restaurant Rush</a>
+  <span class="title"><span class="zh">茶餐廳</span> Counter Rush <small>prototype</small></span>
+  <span class="btns">
+    <button id="recipesBtn" type="button">Recipes</button>
+    <button id="pauseBtn" type="button" aria-pressed="false">Pause</button>
+    <button id="soundBtn" type="button">Sound on</button>
+  </span>
+</header>
+<main id="wrap">
+  <canvas id="stage" aria-label="The counter: customers on stools at the top, the prep area with ingredient bins, work spots and appliances below"></canvas>
+  <div id="toast" class="ctoast" role="status" hidden></div>
+</main>
+
+<div id="phone" class="cmodal" hidden>
+  <div class="ccard phonecard" role="dialog" aria-modal="true" aria-labelledby="phoneHead">
+    <h2 id="phoneHead"><span class="zh">入貨</span>Phone the supplier <span class="cash">Cash <b id="phoneCash"></b></span></h2>
+    <p class="muted">The counter keeps running while you're on the phone. Express costs more but arrives in seconds.</p>
+    <ul id="phoneList" class="phonelist"></ul>
+    <button id="phoneClose" type="button" class="ghost">Hang up (Esc)</button>
+  </div>
+</div>
+<div id="card" class="cmodal" hidden><div class="ccard" id="cardBody" role="dialog" aria-modal="true"></div></div>
+
+<script type="module" src="main.js?v=mumbzdly"></script>
+</body>
+</html>

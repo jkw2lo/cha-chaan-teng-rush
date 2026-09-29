@@ -4,6 +4,7 @@
 
 - Cha Chaan Teng Rush: https://jkw2lo.github.io/cha-chaan-teng-rush/cct/
 - Dim Sum Rush: https://jkw2lo.github.io/cha-chaan-teng-rush/dimsum/
+- Counter Rush (prototype): https://jkw2lo.github.io/cha-chaan-teng-rush/counter/
 
 Old `?game=dimsum` links redirect to the new addresses.
 
@@ -21,6 +22,12 @@ The game engine is shared; each restaurant is a theme in `themes/`:
 Each keeps its own save. The landing page (`index.html`) shows where each save is up to.
 
 **Pages:** `game.html` is the one game page. `node tools/pages.mjs` writes `cct/index.html` and `dimsum/index.html` from it (each just names its restaurant), so edit `game.html` and rerun the script rather than editing the copies. The script also stamps a version on the stylesheet and script links so browsers pick up new pushes straight away.
+
+## Counter Rush (prototype)
+
+A separate game at `/counter/`, in the spirit of Sushi Go Round: one side-on screen, you behind the counter. Customers on four stools show what they want and how patient they are. Build each dish from the ingredient bins on three work spots, run the timed steps on the kettle (hold on it to pull the tea through the sock), the toaster and the noodle pot, drag the finished dish up to the customer, then click their empty dishes to free the stool. Take them out in the green part of the timer: early is undercooked, late burns. A wrong mix is a mess you bin at a cost. Stock runs down; phone the supplier for a normal (slow, cheap) or express delivery. A day is about three minutes with a takings target.
+
+It has its own code in `counter/` (`recipes.js` for ingredients, appliances, recipes and day tuning; `sim.js` for the rules, with no drawing; `draw.js` for the canvas; `main.js` for input, sound and the cards) and borrows the cha chaan teng theme's dish icons, the splash and the sound. `counter/index.html` is hand-written; `tools/pages.mjs` only refreshes its version stamps. `?debug` skips the splash and gives `cr.run` and `cr.ff(secs)` in the console.
 
 ## Learning mode
 
