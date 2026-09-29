@@ -203,6 +203,31 @@ export function steam(iso, cx, cy, z, t, n = 2){
     c.stroke();
   }
 }
+// The rubber mat where the cook stands to work a station: it marks which way the station faces.
+export function workMat(iso, st){
+  const [dx, dy] = DIRS[st.dir] || [0, 1], ax = st.x + dx, ay = st.y + dy;
+  // the mat hugs the station's front edge
+  const x0 = ax + (dx > 0 ? .02 : .1), x1 = ax + (dx < 0 ? .98 : .9), y0 = ay + (dy > 0 ? .02 : .1), y1 = ay + (dy < 0 ? .98 : .9);
+  const along = dx !== 0;   // ridges run parallel to the counter
+  iso.poly([[x0, y0, .004], [x1, y0, .004], [x1, y1, .004], [x0, y1, .004]], '#2e3033', '#1c1d1f', 1.2);
+  for (let i = 1; i < 6; i++){
+    const f = i / 6;
+    const seg = along ? [[x0 + .05, y0 + (y1 - y0) * f], [x1 - .05, y0 + (y1 - y0) * f]] : [[x0 + (x1 - x0) * f, y0 + .05], [x0 + (x1 - x0) * f, y1 - .05]];
+    iso.poly([[...seg[0], .006], [...seg[1], .006]], null, 'rgba(255,255,255,.12)', Math.max(1, iso.s * .02));
+  }
+  // a yellow safety edge along the side that meets the counter
+  const e = .07, edge = dx > 0 ? [[x0, y0], [x0 + e, y0], [x0 + e, y1], [x0, y1]] : dx < 0 ? [[x1 - e, y0], [x1, y0], [x1, y1], [x1 - e, y1]]
+    : dy > 0 ? [[x0, y0], [x1, y0], [x1, y0 + e], [x0, y0 + e]] : [[x0, y1 - e], [x1, y1 - e], [x1, y1], [x0, y1]];
+  iso.poly(edge.map(([a, b]) => [a, b, .008]), '#e0b23c');
+}
+// Edit mode: a bold arrow from the station out to where the cook stands.
+export function facingArrow(iso, st, col = '#ffd166'){
+  const [dx, dy] = DIRS[st.dir] || [0, 1], px = -dy, py = dx;
+  const cx = st.x + .5 + dx * .95, cy = st.y + .5 + dy * .95;
+  const pt = (f, s) => [cx + dx * f + px * s, cy + dy * f + py * s, .03];
+  const pts = [pt(-.4, -.1), pt(0, -.1), pt(0, -.26), pt(.36, 0), pt(0, .26), pt(0, .1), pt(-.4, .1)];
+  iso.poly(pts, col, 'rgba(40,25,10,.8)', Math.max(1.5, iso.s * .03));
+}
 export function drawStation(iso, st, t, busy){
   contactShadow(iso, st.x + .04, st.y + .04, st.x + .98, st.y + .98, .28);
   THEME.art.station(iso, st, t, busy);

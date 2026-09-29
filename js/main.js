@@ -30,6 +30,7 @@ $('trayHead').childNodes[1].textContent = theme.meta.passName + ' ';
 const canvas = $('game'), ctx = canvas.getContext('2d'), stage = $('stage');
 
 let S = null, R = null, phase = 'title';
+let dayStart = null;   // the save as it was when the shutters went up, so a day can be replayed
 const ui = { paused: false, speed: 1, edit: null, hover: null, cart: {}, drawerOpen: false, cam: { z: 1, x: 0, y: 0 } };
 let frame = { iso: null, hits: [] }, cssW = 800, cssH = 600, dpr = 1;
 let lastUI = 0, last = performance.now(), clock = 0;
@@ -100,6 +101,7 @@ function openDay(){
   if (ui.edit) endEdit();
   closeDrawer();
   save(S);
+  dayStart = JSON.stringify(S);
   R = newRun(S); phase = 'day'; ui.paused = false;
   $('banner').hidden = true;
 }
@@ -108,6 +110,14 @@ function finishDay(){
   UI.modal(UI.summaryHTML(S, R));
   if (R.results && R.results.levelUp) sfx.levelUp(); else sfx.bell();
   S.history.push({ day: S.day, revenue: R.stats.revenue, tips: R.stats.tips, served: R.stats.served, walkouts: R.stats.walkouts });
+}
+// Back to the morning of this day: money, stock, popularity and layout as they were when you opened.
+function replayDay(){
+  if (!dayStart) return;
+  UI.closeModal(); closeDrawer();
+  S = JSON.parse(dayStart); R = null; ui.paused = false;
+  toPrep();
+  UI.flash(`Day ${S.day} again, from the moment you opened.`, 'good');
 }
 function nextDay(){
   UI.closeModal();
@@ -197,6 +207,7 @@ $('modal').addEventListener('click', e => {
   if (b.dataset.continue !== undefined){ UI.closeModal(); toPrep(); syncLearnBtn(); }
   if (b.dataset.new !== undefined){ const learn = lt ? lt.checked : false; clearSave(); S = fresh(); S.learning = learn; syncKitchen(S); UI.closeModal(); toPrep(); syncLearnBtn(); UI.flash('New game: back to day 1 with starter stock and $' + S.money + '.', 'good'); setTimeout(startTour, 350); }
   if (b.dataset.next !== undefined) nextDay();
+  if (b.dataset.replay !== undefined) replayDay();
   if (b.dataset.restock !== undefined){ nextDay(); openDrawer(); }
   if (b.dataset.edit){ nextDay(); beginEdit(b.dataset.edit); }
   if (b.dataset.confirmClose !== undefined){ UI.closeModal(); if (R && !R.closing){ R.closing = true; R.feed.unshift({ text: 'You pulled the shutters down early.', tone: 'warn', t: R.t }); } ui.paused = false; }
@@ -319,7 +330,7 @@ $('closeBtn').onclick = () => {
   if (phase !== 'day' || !R || R.closing) return;
   ui.paused = true;
   UI.modal(`<div class="summary"><h2>Close early?</h2><p>No new customers will come in. Anyone already seated still gets served, then the day ends.</p>
-    <div class="btns"><button data-cancel-close>Keep trading</button><button class="primary danger" data-confirm-close>Close the shop</button></div></div>`);
+    <div class="btns"><button data-cancel-close>Keep trading</button><button data-replay>Restart the day</button><button class="primary danger" data-confirm-close>Close the shop</button></div></div>`);
 };
 
 // ---------- canvas input ----------

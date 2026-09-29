@@ -15,7 +15,7 @@ export const SELL_BACK = 0.5;
 export const KNOWN_AFTER = 6, READING_BONUS = .15;
 // Boosters, bought mid-day for busy spells. One of each can run at a time.
 export const BOOSTS = {
-  cook:     { price: 40, secs: 60, speed: 1 / .65 },    // the cook works about 35% faster
+  cook:     { price: 40, secs: 60, speed: 1 / .65 },    // each dish takes 35% less time (about 1.5× the pace); walking is unchanged
   patience: { price: 60, secs: 60, slow: .5 },          // waiting tickets run down at half speed
 };            // refund when selling furniture or appliances
 

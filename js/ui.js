@@ -119,7 +119,7 @@ export function renderSide(S, R){
   // boosters
   setHTML('boosts', Object.entries(BOOSTS).map(([k, b]) => {
     const label = (THEME.meta.boosts || {})[k] || { zh: k, name: k }, on = boosted(R, k), left = on ? R.boosts[k] - R.t : 0;
-    const desc = k === 'cook' ? `Cooks 35% faster for ${b.secs}s` : `Waiting customers twice as patient for ${b.secs}s`;
+    const desc = k === 'cook' ? `Each dish cooks in 35% less time for ${b.secs}s (walking between stations isn’t sped up)` : `Waiting customers twice as patient for ${b.secs}s`;
     return `<button type="button" class="boost ${on ? 'on' : ''}" data-boost="${k}" ${!R || R.over || on || S.money < b.price ? 'disabled' : ''} title="${label.name}: ${desc}">
       <span class="bzh">${label.zh}</span><span class="bname">${label.name}</span><em>${on ? `${Math.ceil(left)}s` : fmtMoney(b.price)}</em>
       ${on ? `<i style="width:${Math.round(left / b.secs * 100)}%"></i>` : ''}</button>`;
@@ -311,7 +311,7 @@ export function summaryHTML(S, R){
     ${R.results.levelUp ? `<div class="levelup"><b>Level ${R.results.levelUp}!</b> ${R.results.newItems.map(m => `${MENU[m].zh} ${MENU[m].name.toLowerCase()}`).join(' and ')} ${R.results.newItems.length > 1 ? 'are' : 'is'} now available. Buy the station in the kitchen and order its ingredients, and it goes on the menu.</div>` : ''}
     ${st.lost ? `<p class="muted">${st.lost} customer${st.lost > 1 ? 's' : ''} couldn't get a seat or found nothing on the menu. More seats means more customers at once.</p>` : ''}
     ${low.length ? `<p class="warnline">Running low: ${low.join(', ')}. Anything you order tonight arrives before opening.</p>` : ''}
-    <div class="btns"><button data-restock>Order stock</button><button data-edit="kitchen">Rearrange kitchen</button><button data-edit="dining">Redecorate</button><button class="primary" data-next>On to day ${S.day + 1}</button></div>
+    <div class="btns"><button data-replay title="Start this day over, as it was when you opened">Replay day ${S.day}</button><button data-restock>Order stock</button><button data-edit="kitchen">Rearrange kitchen</button><button data-edit="dining">Redecorate</button><button class="primary" data-next>On to day ${S.day + 1}</button></div>
   </div>`;
 }
 

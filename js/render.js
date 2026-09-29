@@ -85,6 +85,8 @@ export function draw(ctx, cssW, cssH, dpr, S, R, ui, t){
   }
 
   for (const it of S.dining.items) if (DECOR[it.type].kind === 'ceiling') A.lampPool(iso, it);
+  for (const st of S.kitchen) if (!(edit && edit.moving === st.id)) A.workMat(iso, st);
+  if (edit && edit.room === 'kitchen' && edit.ghost && edit.ghostItem) A.workMat(iso, { ...edit.ghostItem, x: edit.ghost.x, y: edit.ghost.y });
 
   // ---------- depth-sorted scene ----------
   const list = [];
@@ -355,6 +357,11 @@ function drawGhostItem(iso, S, edit, t){
   c.restore();
 }
 function drawEditMarkers(iso, S, edit){
+  if (edit.room === 'kitchen'){
+    for (const st of S.kitchen) if (edit.moving !== st.id && !APPLIANCES[st.type].fixed) A.facingArrow(iso, st);
+    if (edit.ghost && edit.ghostItem) A.facingArrow(iso, { ...edit.ghostItem, x: edit.ghost.x, y: edit.ghost.y }, edit.ghost.ok ? '#7fe08a' : '#ff6b5b');
+    return;
+  }
   if (edit.room !== 'dining') return;
   const c = iso.ctx;
   for (const r of seatReport(S)){
