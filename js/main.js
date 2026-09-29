@@ -37,6 +37,29 @@ let lastUI = 0, last = performance.now(), clock = 0;
 window.addEventListener('pointerdown', unlockAudio, true);
 window.addEventListener('keydown', unlockAudio, true);
 
+// ---------- a resizable left panel ----------
+const SIDE_KEY = 'rush-side-width', SIDE_MIN = 320, SIDE_MAX = 620, SIDE_DEFAULT = 390;
+function setSide(w, keep = true){
+  w = Math.round(Math.max(SIDE_MIN, Math.min(SIDE_MAX, Math.min(w, innerWidth - 480))));
+  document.documentElement.style.setProperty('--side-w', w + 'px');
+  if (keep) try { localStorage.setItem(SIDE_KEY, String(w)); } catch (e) {}
+}
+try { const w = Number(localStorage.getItem(SIDE_KEY)); if (w) setSide(w, false); } catch (e) {}
+{
+  const bar = $('sideResizer');
+  let dragging = false;
+  bar.addEventListener('pointerdown', e => { dragging = true; bar.setPointerCapture(e.pointerId); bar.classList.add('dragging'); document.body.classList.add('resizing'); e.preventDefault(); });
+  bar.addEventListener('pointermove', e => { if (dragging) setSide(e.clientX); });
+  const stop = () => { dragging = false; bar.classList.remove('dragging'); document.body.classList.remove('resizing'); };
+  bar.addEventListener('pointerup', stop); bar.addEventListener('pointercancel', stop);
+  bar.addEventListener('dblclick', () => { setSide(SIDE_DEFAULT); });
+  bar.addEventListener('keydown', e => {                       // arrow keys work too
+    const cur = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--side-w')) || SIDE_DEFAULT;
+    if (e.key === 'ArrowLeft'){ setSide(cur - 20); e.preventDefault(); }
+    if (e.key === 'ArrowRight'){ setSide(cur + 20); e.preventDefault(); }
+  });
+}
+
 // ---------- sizing ----------
 function resize(){
   const r = stage.getBoundingClientRect();

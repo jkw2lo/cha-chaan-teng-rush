@@ -557,3 +557,12 @@ button.qslot{border:0; padding:0; background:#fff; cursor:pointer; font:inherit}
 .side{overflow-x:hidden}
 #inv.compact .inv .qo small{display:none}
 #inv.compact .inv .qo{padding:3px 9px}
+
+/* the left panel can be dragged wider or narrower (width kept per browser) */
+:root{--side-w:390px}
+#app{grid-template-columns:var(--side-w) 1fr; position:relative}
+.side-resizer{position:fixed; top:0; bottom:0; left:calc(var(--side-w) - 4px); width:9px; z-index:8; cursor:col-resize; touch-action:none}
+.side-resizer::after{content:""; position:absolute; top:50%; left:3px; width:3px; height:48px; margin-top:-24px; border-radius:2px; background:rgba(125,134,141,.55); transition:background .15s}
+.side-resizer:hover::after, .side-resizer.dragging::after, .side-resizer:focus-visible::after{background:var(--gold)}
+.side-resizer:focus-visible{outline:none}
+body.resizing, body.resizing *{cursor:col-resize !important; user-select:none}

@@ -20,7 +20,7 @@ The game engine is shared; each restaurant is a theme in `themes/`:
 
 Each keeps its own save. The landing page (`index.html`) shows where each save is up to.
 
-**Pages:** `game.html` is the one game page. `node tools/pages.mjs` writes `cct/index.html` and `dimsum/index.html` from it (each just names its restaurant), so edit `game.html` and rerun the script rather than editing the copies.
+**Pages:** `game.html` is the one game page. `node tools/pages.mjs` writes `cct/index.html` and `dimsum/index.html` from it (each just names its restaurant), so edit `game.html` and rerun the script rather than editing the copies. The script also stamps a version on the stylesheet and script links so browsers pick up new pushes straight away.
 
 ## Learning mode
 
@@ -41,6 +41,7 @@ ES modules don't load from `file://`, so serve the folder. Needs Node 18 or late
 - **Mouse wheel / trackpad** zooms toward the pointer; drag empty floor to pan. **K** jumps to the kitchen, **0** shows the whole shop, **+ / −** zoom.
 - **Space** pauses. The speed button cycles 1× / 2× / 3×.
 - While editing: drag to buy or move, **R** rotates, **Esc** cancels or deselects.
+- **Drag the left panel's right edge** to make it wider or narrower (double-click the edge to reset; arrow keys work when it's focused). The width is remembered.
 - **? Tour** (top left, before opening) replays the walkthrough. **♪** cycles sound: effects and Cantonese call-outs, effects only, or off.
 
 Add `?debug` to the URL for `window.cct` in the console: `cct.S` (save), `cct.R` (today), `cct.money(500)`, `cct.stars(3)`, `cct.ff(60)` (fast-forward 60 game seconds).
