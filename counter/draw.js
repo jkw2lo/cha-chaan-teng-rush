@@ -5,6 +5,7 @@ import { TAU, HAN, iconCanvas } from '../js/art.js';
 import { INGREDIENTS, APPLIANCES, STATIONS, VESSEL_NAME, RECIPES, DAY, candidates, finished, missing, rawInput, vesselOf, partZh } from './recipes.js';
 import { spotDish, takings } from './sim.js';
 import { phrase } from '../themes/cct/index.js';
+import { ENDLESS, opensOn } from './levels.js';
 
 export const W = 1280, H = 820;
 const HUD = 48, COUNTER_Y = 296, PREP_Y = 372;
@@ -390,18 +391,34 @@ function hud(c, run, time){
   c.fillStyle = '#15302a'; c.fillRect(0, 0, W, HUD);
   c.fillStyle = '#9e1f19'; rr(c, 12, 8, 150, 32, 4); c.fill(); c.strokeStyle = '#f2d27a'; c.lineWidth = 2; rr(c, 13, 9, 148, 30, 4); c.stroke();
   text(c, '茶餐廳', 58, 25, `900 18px ${HAN}`, '#f2d27a'); text(c, 'Counter', 124, 25, `700 16px ${SLAB}`, '#fff');
-  // day bar
-  const f = Math.min(1, run.t / DAY.seconds);
-  text(c, time, 190, 25, `700 22px ${SLAB}`, '#fff', 'left');
-  c.fillStyle = 'rgba(255,255,255,.12)'; rr(c, 262, 18, 220, 12, 6); c.fill();
-  c.fillStyle = run.closed ? '#c8372d' : '#f2d27a'; rr(c, 262, 18, Math.max(12, 220 * f), 12, 6); c.fill();
-  text(c, (run.closed ? 'Closing up' : 'Open till 11:00') + ` · ${run.cfgLabel.split(' ').pop()}`, 492, 25, `500 13px ${SANS}`, '#cfd8d2', 'left');
-  // takings vs target
-  const tk = takings(run), tf = Math.min(1, tk / run.target);
-  text(c, 'Takings', 700, 25, `700 12px ${SANS}`, '#9fb4aa', 'left');
-  c.fillStyle = 'rgba(255,255,255,.12)'; rr(c, 760, 16, 200, 16, 8); c.fill();
-  c.fillStyle = tk >= run.target ? '#2e9e5b' : '#e39b2d'; rr(c, 760, 16, Math.max(16, 200 * tf), 16, 8); c.fill();
-  text(c, `$${tk} / $${run.target}`, 860, 25, `700 12px ${SANS}`, '#fff');
+  const tk = takings(run), diff = run.cfgLabel.split(' ').pop();
+  if (run.endless){
+    // Do or Die: the level, the strikes left, and how far to the next level
+    text(c, `搏命 Level ${run.level}`, 190, 25, `900 20px ${HAN}`, '#ffd23f', 'left');
+    for (let k = 0; k < run.strikes; k++){
+      const x = 350 + k * 26, gone = k < run.walkouts;
+      c.fillStyle = gone ? '#c8372d' : 'rgba(255,255,255,.14)'; c.beginPath(); c.arc(x, 24, 10, 0, TAU); c.fill();
+      text(c, gone ? '✗' : '', x, 25, `700 13px ${SANS}`, '#fff');
+    }
+    text(c, `walkouts · ${diff}`, 350 + run.strikes * 26 - 6, 25, `500 13px ${SANS}`, '#cfd8d2', 'left');
+    const from = run.level > 1 ? ENDLESS.mark(run.level - 1) : 0, tf = Math.min(1, (tk - from) / (run.nextMark - from));
+    text(c, 'Next level', 680, 25, `700 12px ${SANS}`, '#9fb4aa', 'left');
+    c.fillStyle = 'rgba(255,255,255,.12)'; rr(c, 760, 16, 200, 16, 8); c.fill();
+    c.fillStyle = '#ffd23f'; rr(c, 760, 16, Math.max(16, 200 * tf), 16, 8); c.fill();
+    text(c, `$${tk} / $${run.nextMark}`, 860, 25, `700 12px ${SANS}`, tf > .55 ? '#2a221c' : '#fff');
+  } else {
+    // the day: clock, time left, and the takings target
+    const f = Math.min(1, run.t / DAY.seconds);
+    text(c, time, 190, 25, `700 22px ${SLAB}`, '#fff', 'left');
+    c.fillStyle = 'rgba(255,255,255,.12)'; rr(c, 262, 18, 180, 12, 6); c.fill();
+    c.fillStyle = run.closed ? '#c8372d' : '#f2d27a'; rr(c, 262, 18, Math.max(12, 180 * f), 12, 6); c.fill();
+    text(c, `${run.closed ? 'Closing up' : `Day ${run.cfg.day}`} · ${diff}`, 452, 25, `700 13px ${SANS}`, '#cfd8d2', 'left');
+    const tf = Math.min(1, tk / run.target);
+    text(c, 'Takings', 700, 25, `700 12px ${SANS}`, '#9fb4aa', 'left');
+    c.fillStyle = 'rgba(255,255,255,.12)'; rr(c, 760, 16, 200, 16, 8); c.fill();
+    c.fillStyle = tk >= run.target ? '#2e9e5b' : '#e39b2d'; rr(c, 760, 16, Math.max(16, 200 * tf), 16, 8); c.fill();
+    text(c, `$${tk} / $${run.target}`, 860, 25, `700 12px ${SANS}`, '#fff');
+  }
   text(c, 'Cash', 1010, 25, `700 12px ${SANS}`, '#9fb4aa', 'left');
   text(c, `${run.cash < 0 ? '−$' : '$'}${Math.abs(Math.floor(run.cash))}`, 1046, 25, `700 22px ${SLAB}`, run.cash < 0 ? '#ff8a7a' : '#fff', 'left');
 }
@@ -609,6 +626,14 @@ export function drawFrame(c, run, ui){
   hud(c, run, time);
 
   drawDoor(c, run, t);
+  // price boards for dishes that aren't on today's menu are covered over
+  ['hotTea', 'butterBun', 'condensedToast', 'noodleSpam'].forEach((r, i) => {
+    if (run.menu.includes(r)) return;
+    const bx = [95, 365, 635, 905][i];
+    c.fillStyle = 'rgba(40,46,44,.72)'; rr(c, bx - 1, 63, 52, 134, 4); c.fill();
+    c.fillStyle = '#f4ecd8'; rr(c, bx - 6, 118, 62, 22, 3); c.fill();
+    text(c, '未有', bx + 25, 129.5, `900 13px ${HAN}`, '#9e1f19');
+  });
   // customers and what's in front of them
   const people = [];
   run.seats.forEach((s, i) => { if (s.cust) people.push({ c: s.cust, i }); });
@@ -702,6 +727,21 @@ export function drawFrame(c, run, ui){
     c.fillStyle = '#4a5156'; for (let i = 0; i < 3; i++) c.fillRect(cx - 18 + i * 16, b.y + 60, 4, 60);
     text(c, '垃圾 Bin', cx, b.y + 18, `900 15px ${HAN}`, '#2a221c'); text(c, 'Drag a plate here to toss it', cx, b.y + b.h - 16, `500 10.5px ${SANS}`, '#3a4448'); }
 
+  // stations that aren't open yet are behind a roller shutter
+  for (const st of stations){
+    if (run.open.includes(st.i)) continue;
+    const y0 = PREP_Y + 8, h = H - PREP_Y - 12;
+    c.save(); rr(c, st.x, y0, st.w, h, 12); c.clip();
+    c.fillStyle = '#8f969d'; c.fillRect(st.x, y0, st.w, h);
+    for (let y = y0; y < y0 + h; y += 13){ c.fillStyle = '#a9b0b6'; c.fillRect(st.x, y, st.w, 8); c.fillStyle = '#6f767d'; c.fillRect(st.x, y + 8, st.w, 2); }
+    c.restore();
+    const cx = st.x + st.w / 2, cy = y0 + h / 2;
+    c.fillStyle = '#9e1f19'; rr(c, cx - 86, cy - 44, 172, 88, 8); c.fill();
+    c.strokeStyle = '#f2d27a'; c.lineWidth = 2; rr(c, cx - 82, cy - 40, 164, 80, 6); c.stroke();
+    text(c, `${st.zh} ${st.name}`, cx, cy - 18, `900 17px ${HAN}`, '#f2d27a');
+    text(c, `Opens on Day ${opensOn(st.id)}`, cx, cy + 6, `700 14px ${SANS}`, '#fff');
+    text(c, '未開 Not open yet', cx, cy + 26, `500 12px ${SANS}`, '#f4ecd8');
+  }
   // while dragging, show where it can go
   if (ui.drag && ui.drag.moved) dropTargets(c, t);
   // dishes on their way from the plate to the customer

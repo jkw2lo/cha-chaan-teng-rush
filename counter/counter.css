@@ -78,3 +78,25 @@ body.counter{display:flex; flex-direction:column; height:100vh; background:#0f23
   background:#9e1f19; color:#fff; padding:8px 10px 8px 14px; border-radius:12px; box-shadow:0 8px 24px rgba(0,0,0,.45); font-weight:700; font-size:13.5px}
 .errbar button{border:0; border-radius:8px; padding:6px 12px; font-weight:700; background:#fff; color:#9e1f19}
 .errbar #errClose{background:transparent; color:#fff; font-size:18px; padding:2px 8px}
+
+/* the day picker */
+.days{display:grid; grid-template-columns:repeat(auto-fill, minmax(150px, 1fr)); gap:8px; margin:10px 0 14px}
+.daytile{display:flex; flex-direction:column; align-items:flex-start; gap:2px; text-align:left; background:#fff; color:var(--ink); border:2px solid #eadfca; border-radius:10px; padding:9px 11px; cursor:pointer; font:inherit}
+.daytile:hover:not(:disabled){border-color:#d6b98a}
+.daytile.on{border-color:var(--red); box-shadow:0 0 0 2px rgba(200,55,45,.18)}
+.daytile:disabled{background:#f1ece2; color:#9a8f82; cursor:not-allowed; opacity:1}
+.daytile .dn{font:700 14px var(--slab)} .daytile .dn .zh{color:var(--red); font-size:15px; margin-left:2px}
+.daytile .dname{font-weight:700; font-size:13px}
+.daytile .dnote{font-size:12px; color:#6a5f52; line-height:1.3}
+.daytile:disabled .dnote{color:#9a8f82}
+.daytile .dfoot{margin-top:auto; padding-top:4px; font-size:12px}
+.daytile .dfoot small{color:var(--muted)}
+.daytile.endless{grid-column:1 / -1; background:linear-gradient(90deg, #2a1414, #5a1a14); color:#fff; border-color:#7a2a20}
+.daytile.endless .dn .zh{color:#ffd23f; font-size:17px; margin:0 4px 0 0}
+.daytile.endless .dnote, .daytile.endless .dfoot small{color:#f4d9c8}
+.daytile.endless.on{border-color:#ffd23f; box-shadow:0 0 0 2px rgba(255,210,63,.3)}
+.daytile.endless:disabled{background:#3a2a28; color:#b9a9a0}
+.st{color:#e3a21a; letter-spacing:.05em} .st i{font-style:normal; color:#dcd2bf}
+.unlock{background:#e6f4ea; color:#1d6b3f; font-weight:700; border-radius:8px; padding:8px 12px}
+.howto{margin:0 0 14px} .howto > summary{cursor:pointer; font-weight:700; color:#5a4f43; padding:4px 0}
+.row .ghost{cursor:pointer; font:inherit; font-weight:700}

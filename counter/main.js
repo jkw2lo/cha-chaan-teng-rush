@@ -5,7 +5,8 @@ import { useTheme } from '../js/data.js';
 import { showSplash } from '../js/splash.js';
 import { sfx, unlockAudio, callOut, cycleSound, soundMode, startSizzle, stopSizzle } from '../js/sound.js';
 import { iconURL } from '../js/art.js';
-import { INGREDIENTS, BIN_ORDER, RECIPES, RECIPE_ORDER, APPLIANCES, DAY } from './recipes.js';
+import { INGREDIENTS, BIN_ORDER, RECIPES, RECIPE_ORDER, APPLIANCES, DAY, STATIONS } from './recipes.js';
+import { DAYS, ENDLESS, loadProgress, saveProgress, unlocked, endlessUnlocked, totalStars, furthestDay, runConfig } from './levels.js';
 import * as S from './sim.js';
 import { PRESETS, KNOBS, loadSettings, saveSettings, matchesPreset, settingsLabel } from './settings.js';
 import { W, H, L, SEAT_X, FLIGHT, inBox, drawFrame } from './draw.js';
@@ -18,7 +19,8 @@ const cv = $('stage'), c = cv.getContext('2d');
 const debug = new URLSearchParams(location.search).has('debug');
 
 let settings = loadSettings();
-const freshRun = () => S.newRun(Math.random, { ...settings, label: settingsLabel(settings) });
+let progress = loadProgress(), chosen = furthestDay(progress);
+const freshRun = () => S.newRun(Math.random, { ...runConfig(chosen, settings, STATIONS), label: settingsLabel(settings) });
 let run = freshRun();
 let started = false, paused = false, phoneOpen = false, summaryShown = false;
 const ui = { t: 0, drag: null, floats: [], coins: [], flights: [], hover: null, pulling: false };
@@ -77,13 +79,14 @@ function handleEvents(){
       case 'burnt': sfx.walkout(); { const b = L.apps[e.app]; float(b.x + b.w / 2, b.y + 110, e.why + '!', '#9e1f19'); } break;
       case 'serve': sfx.bell(); { const b = L.spots[e.spot]; ui.flights.push({ dish: e.dish, seat: e.seat, x0: b.x + b.w / 2, y0: b.y + 62, x1: SEAT_X[e.seat], y1: 318, age: 0 }); } break;
       case 'pay': sfx.cash(); for (let k = 0; k < 4; k++) ui.coins.push({ x: SEAT_X[e.seat] + (k - 1.5) * 14, age: -k * .08 }); float(SEAT_X[e.seat], 200, `+$${e.price + e.tip}`, '#1d6b3f'); if (e.tip) float(SEAT_X[e.seat], 230, `tip $${e.tip}`, '#2e7d4f'); break;
-      case 'walkout': sfx.walkout(); break;
+      case 'walkout': sfx.walkout(); if (run.endless) say(`Walkout ${run.walkouts} of ${run.strikes}${run.walkouts >= run.strikes ? '' : '. Careful!'}`); break;
       case 'arrive': sfx.door(); break;
       case 'order': { const n = {}; e.order.forEach(d => n[d] = (n[d] || 0) + 1); callOut(n); } break;
       case 'clear': sfx.clear(); break;
       case 'bin': sfx.waste(); if (e.cost) float(L.trash.x + 52, L.trash.y + 120, `-$${e.cost.toFixed(e.cost % 1 ? 1 : 0)}`, '#9e1f19'); break;
       case 'phone': sfx.queue(); break;
       case 'delivery': sfx.delivery(); { const b = L.bins.find(b => b.ing === e.ing) || L.cabinet; float(b.x + b.w / 2, b.y + 20, `+${INGREDIENTS[e.ing].pack}`, '#1d4f7a'); } break;
+      case 'levelup': sfx.levelUp(); say(`Level ${e.level}! Customers are coming faster.`, false); float(640, 200, `${ENDLESS.zh} Level ${e.level}`, '#9e1f19'); break;
       case 'closing': say('11:00, closing time. Finish off the customers you have.', false); break;
       case 'over': setTimeout(showSummary, 900); break;
     } } catch (err) { report(err, `event ${e.kind}`); }
@@ -204,42 +207,100 @@ $('recipesBtn').onclick = () => { if (started && !run.over && !paused) togglePau
 const recipeHTML = () => RECIPE_ORDER.map(r => { const R = RECIPES[r];
   return `<li><img src="${iconURL(r)}" alt=""><div><b><span class="zh">${R.zh}</span> ${R.name}</b> <em>$${R.price}</em>
     <ol>${R.steps.map(s => `<li>${s}</li>`).join('')}</ol></div></li>`; }).join('');
+const howHTML = () => `<div class="how">
+    <p><b>Each station is a column</b>: ingredients on top, the kettle, cabinet, toaster or pot in the middle, and its cup, plate or bowl at the bottom.
+       Click an ingredient and it goes where it belongs. Take food out of an appliance in the <span class="g">green</span> part of its timer:
+       too early is undercooked, too late burns. Pull the tea by <b>holding</b> the mouse on the kettle.</p>
+    <p><b>Serving is automatic</b>: a finished dish goes straight to whoever ordered it. When they've eaten, click their empty dishes to free the stool.
+       A spoiled plate is a mess: drag it to the bin (it costs you). Running low? Phone the supplier.</p>
+  </div>`;
+const starsHTML = n => `<span class="st">${'★'.repeat(n)}<i>${'★'.repeat(3 - n)}</i></span>`;
+const dayTarget = d => Math.round(d.target * settings.target / 10) * 10;
+const chosenName = () => chosen === 'endless' ? `${ENDLESS.zh} ${ENDLESS.name}` : `Day ${chosen}`;
+
+// the day picker: every day on the ladder, then Do or Die
+function daysHTML(){
+  const tiles = DAYS.map(d => {
+    const open = unlocked(progress, d.n), st = progress.stars[d.n] || 0, best = progress.best[d.n];
+    return `<button type="button" class="daytile${chosen === d.n ? ' on' : ''}" data-day="${d.n}" ${open ? '' : 'disabled'}>
+      <span class="dn">Day ${d.n} <b class="zh">${d.zh}</b></span>
+      <span class="dname">${d.name}</span>
+      <span class="dnote">${open ? d.note : `Clear Day ${d.n - 1} to open`}</span>
+      <span class="dfoot">${open ? `${starsHTML(st)} <small>target $${dayTarget(d)}${best ? ` · best $${best}` : ''}</small>` : '🔒'}</span>
+    </button>`;
+  }).join('');
+  const eOpen = endlessUnlocked(progress), eb = progress.endless;
+  return tiles + `<button type="button" class="daytile endless${chosen === 'endless' ? ' on' : ''}" data-day="endless" ${eOpen ? '' : 'disabled'}>
+      <span class="dn"><b class="zh">${ENDLESS.zh}</b> ${ENDLESS.name}</span>
+      <span class="dnote">${eOpen ? ENDLESS.note : `Clear Day ${DAYS.length} to unlock the endless shift.`}</span>
+      <span class="dfoot">${eOpen ? (eb ? `<small>best: level ${eb.level}, $${eb.takings}</small>` : '<small>no attempts yet</small>') : '🔒'}</span>
+    </button>`;
+}
+function wireDays(){
+  const box = $('days'); if (!box) return;
+  box.innerHTML = daysHTML();
+  box.querySelectorAll('[data-day]').forEach(b => b.onclick = () => { chosen = b.dataset.day === 'endless' ? 'endless' : +b.dataset.day; wireDays(); });
+  if ($('cardGo')) $('cardGo').textContent = `Start ${chosenName()}`;
+}
 function showCard(kind){
   const card = $('cardBody');
-  if (kind === 'intro' || kind === 'recipes'){
+  if (kind === 'intro'){
+    const fresh = !totalStars(progress);
     card.innerHTML = `
-      <h2><span class="zh">開工</span>${kind === 'intro' ? 'Morning shift at the counter' : 'Recipes'}</h2>
-      ${kind === 'intro' ? `<p>Four stools, a kettle, a toaster and a noodle pot. Hit the takings target before 11:00. Set how hard the morning is below; you can change it again after each round.</p>${difficultyHTML()}` : ''}
-      <ul class="recipes">${recipeHTML()}</ul>
-      <div class="how">
-        <p><b>Each station is a column</b>: ingredients on top, the kettle, cabinet, toaster or pot in the middle, and its cup, plate or bowl at the bottom.
-           Click an ingredient and it goes where it belongs. Take food out of an appliance in the <span class="g">green</span> part of its timer:
-           too early is undercooked, too late burns. Pull the tea by <b>holding</b> the mouse on the kettle.</p>
-        <p><b>Serving is automatic</b>: a finished dish goes straight to whoever ordered it. When they've eaten, click their empty dishes to free the stool.
-           A spoiled plate is a mess: drag it to the bin (it costs you). Running low? Phone the supplier.</p>
-      </div>
-      <button type="button" class="go" id="cardGo">${kind === 'intro' ? 'Open the counter' : 'Back to work'}</button>`;
-    $('cardGo').onclick = () => { $('card').hidden = true; if (!started){ run = freshRun(); started = true; unlockAudio(); } else if (paused) togglePause(); };
-    if (kind === 'intro') wireDifficulty();
+      <h2><span class="zh">開工</span>Choose a day</h2>
+      <p>Hit a day's takings target before 11:00 to open the next one. Clear them all for ${ENDLESS.zh} ${ENDLESS.name}.</p>
+      <div class="days" id="days"></div>
+      ${difficultyHTML()}
+      <details class="howto"${fresh ? ' open' : ''}><summary>How to play</summary><ul class="recipes">${recipeHTML()}</ul>${howHTML()}</details>
+      <button type="button" class="go" id="cardGo"></button>`;
+    wireDays();
+    wireDifficulty(wireDays);
+    $('cardGo').onclick = () => { $('card').hidden = true; run = freshRun(); started = true; summaryShown = false; paused = false; ui.floats = []; unlockAudio(); };
+  } else {
+    card.innerHTML = `<h2><span class="zh">食譜</span>Recipes</h2><ul class="recipes">${recipeHTML()}</ul>${howHTML()}
+      <button type="button" class="go" id="cardGo">Back to work</button>`;
+    $('cardGo').onclick = () => { $('card').hidden = true; if (paused) togglePause(); };
   }
   $('card').hidden = false;
-  $('cardGo')?.focus();
+  $('cardGo')?.focus({ preventScroll: true });
 }
 function showSummary(){
   if (summaryShown) return; summaryShown = true;
   closePhone();
-  const tk = S.takings(run), st = S.stars(run), hit = tk >= run.target, m = v => `$${Math.round(v)}`;
-  if (hit) sfx.levelUp();
+  const tk = S.takings(run), m = v => `$${Math.round(v)}`;
+  let head, big, note = '', buttons, next = null;
+  if (run.endless){
+    const prev = progress.endless, record = !prev || run.level > prev.level || (run.level === prev.level && tk > prev.takings);
+    if (record){ progress.endless = { level: run.level, takings: tk }; saveProgress(progress); sfx.levelUp(); }
+    head = `<span class="zh">收工</span>Three walkouts: that's the shift`;
+    big = `<p class="big">Level ${run.level} <small>· ${m(tk)} taken</small></p>`;
+    note = record ? `<p class="unlock">New best!</p>` : `<p class="muted">Best: level ${prev.level}, $${prev.takings}</p>`;
+    buttons = `<button type="button" class="go" id="againBtn">Go again</button><button type="button" class="ghost" id="pickBtn">Choose a day</button>`;
+  } else {
+    const n = run.cfg.day, st = S.stars(run), hit = st > 0;
+    const wasOpen = n < DAYS.length ? unlocked(progress, n + 1) : endlessUnlocked(progress);
+    progress.stars[n] = Math.max(progress.stars[n] || 0, st);
+    progress.best[n] = Math.max(progress.best[n] || 0, tk);
+    saveProgress(progress);
+    if (hit) sfx.levelUp();
+    head = `<span class="zh">收工</span>${hit ? `Day ${n} cleared!` : `Day ${n}: closing time`}`;
+    big = `<p class="stars" aria-label="${st} of 3 stars">${'★'.repeat(st)}<span>${'★'.repeat(3 - st)}</span></p>
+      <p class="big">${m(tk)} taken <small>of a $${run.target} target · ${run.cfgLabel}</small></p>`;
+    if (hit && !wasOpen) note = n < DAYS.length ? `<p class="unlock">Day ${n + 1} is open: ${DAYS[n].note.toLowerCase()}.</p>` : `<p class="unlock">${ENDLESS.zh} ${ENDLESS.name} is open: the endless shift.</p>`;
+    else if (!hit) note = `<p class="muted">You need $${run.target} for a star. ${run.walkouts > 2 ? 'Customers walked out: try starting drinks and toast before orders pile up.' : 'Keep every station busy.'}</p>`;
+    next = hit ? (n < DAYS.length ? n + 1 : 'endless') : null;
+    buttons = next ? `<button type="button" class="go" id="nextBtn">${next === 'endless' ? `Try ${ENDLESS.zh} ${ENDLESS.name}` : `Next: Day ${next} →`}</button><button type="button" class="ghost" id="againBtn">Replay Day ${n}</button>`
+                   : `<button type="button" class="go" id="againBtn">Try Day ${n} again</button>`;
+    buttons += `<button type="button" class="ghost" id="pickBtn">Choose a day</button>`;
+  }
   $('cardBody').innerHTML = `
-    <h2><span class="zh">收工</span>${hit ? 'Target hit!' : 'Closing time'}</h2>
-    <p class="stars" aria-label="${st} of 3 stars">${'★'.repeat(st)}<span>${'★'.repeat(3 - st)}</span></p>
-    <p class="big">${m(tk)} taken <small>of a $${run.target} target · ${run.cfgLabel}</small></p>
+    <h2>${head}</h2>${big}${note}
     <dl class="sum">
       <dt>Sales</dt><dd>${m(run.sales)}</dd>
       <dt>Tips</dt><dd>${m(run.tips)}</dd>
       <dt>Stock ordered</dt><dd class="${run.stockSpent ? 'neg' : ''}">${run.stockSpent ? '−' : ''}${m(run.stockSpent)}</dd>
       <dt>Waste and messes</dt><dd class="${run.waste ? 'neg' : ''}">${run.waste ? '−' : ''}${m(run.waste)}</dd>
-      <dt>Profit for the morning</dt><dd><b>${m(S.net(run))}</b></dd>
+      <dt>Profit</dt><dd><b>${m(S.net(run))}</b></dd>
     </dl>
     <dl class="sum small">
       <dt>Customers served</dt><dd>${run.served} of ${run.customers}</dd>
@@ -249,12 +310,15 @@ function showSummary(){
     </dl>
     ${historyHTML(recordRound())}
     ${difficultyHTML('For the next round')}
-    <div class="row"><button type="button" class="go" id="againBtn">Play again</button><a class="ghost" href="../#hongkong">Back to all restaurants</a></div>`;
+    <div class="row">${buttons}</div>`;
   wireDifficulty();
-  $('againBtn').onclick = () => { run = freshRun(); summaryShown = false; paused = false; $('card').hidden = true; ui.floats = []; };
+  $('againBtn').onclick = restart;
+  if (next) $('nextBtn').onclick = () => { chosen = next; restart(); };
+  $('pickBtn').onclick = () => showCard('intro');
   $('card').hidden = false;
-  $('againBtn').focus();
+  ($('nextBtn') || $('againBtn')).focus();
 }
+function restart(){ run = freshRun(); summaryShown = false; paused = false; $('card').hidden = true; ui.floats = []; }
 
 // ---------- difficulty ----------
 function difficultyHTML(title = 'Difficulty'){
@@ -269,12 +333,13 @@ function difficultyHTML(title = 'Difficulty'){
     </details>
   </fieldset>`;
 }
-function wireDifficulty(){
+function wireDifficulty(onChange){
   const box = document.querySelector('.diff'); if (!box) return;
   const sync = () => {
     box.querySelector('#diffName').textContent = settingsLabel(settings);
     for (const k of KNOBS){ box.querySelector(`[data-knob="${k.id}"]`).value = settings[k.id]; box.querySelector(`[data-for="${k.id}"]`).textContent = k.fmt(settings[k.id]); }
     saveSettings(settings);
+    onChange?.();
   };
   box.querySelector('#diffPreset').oninput = e => { const i = +e.target.value; settings = { ...settings, ...PRESETS[i], preset: i }; delete settings.name; delete settings.zh; sync(); };
   box.querySelectorAll('[data-knob]').forEach(inp => inp.oninput = () => { settings = { ...settings, [inp.dataset.knob]: +inp.value }; sync(); });
@@ -288,7 +353,7 @@ const HISTORY_KEY = 'counter-rush-history';
 function loadHistory(){ try { return JSON.parse(localStorage.getItem(HISTORY_KEY) || '[]'); } catch (e) { return []; } }
 function recordRound(){
   const h = loadHistory();
-  h.unshift({ when: Date.now(), label: run.cfgLabel, target: run.target, takings: S.takings(run), served: run.served, customers: run.customers,
+  h.unshift({ when: Date.now(), day: run.endless ? `${ENDLESS.zh} L${run.level}` : `Day ${run.cfg.day}`, label: run.cfgLabel, target: run.target, takings: S.takings(run), served: run.served, customers: run.customers,
     walkouts: run.walkouts, messes: run.messes, burnt: run.burnt, stars: S.stars(run) });
   try { localStorage.setItem(HISTORY_KEY, JSON.stringify(h.slice(0, 8))); } catch (e) {}
   return h.slice(0, 8);
@@ -296,8 +361,8 @@ function recordRound(){
 function historyHTML(h){
   if (h.length < 2) return '';
   return `<details class="hist"><summary>Your last ${h.length} rounds</summary><table>
-    <thead><tr><th>Difficulty</th><th>Taken</th><th>Served</th><th>Walked</th><th>Messes</th><th>Stars</th></tr></thead>
-    <tbody>${h.map((r, i) => `<tr${i ? '' : ' class="now"'}><td>${r.label}</td><td>$${r.takings} <small>/ $${r.target}</small></td><td>${r.served}/${r.customers}</td>
+    <thead><tr><th>Day</th><th>Difficulty</th><th>Taken</th><th>Served</th><th>Walked</th><th>Messes</th><th>Stars</th></tr></thead>
+    <tbody>${h.map((r, i) => `<tr${i ? '' : ' class="now"'}><td>${r.day || ''}</td><td>${r.label}</td><td>$${r.takings}${r.target ? ` <small>/ $${r.target}</small>` : ''}</td><td>${r.served}/${r.customers}</td>
       <td>${r.walkouts}</td><td>${r.messes + r.burnt}</td><td>${'★'.repeat(r.stars) || '–'}</td></tr>`).join('')}</tbody></table></details>`;
 }
 

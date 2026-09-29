@@ -26,6 +26,8 @@ export const STATIONS = [
   { id: 'toast',   zh: '多士', name: 'Toast',   bins: ['bread', 'butter', 'condensed'], app: 'toaster', vessel: 'plate' },
   { id: 'noodles', zh: '粉麵', name: 'Noodles', bins: ['noodles', 'luncheon', 'egg'],   app: 'pot',     vessel: 'bowl' },
 ];
+// which station makes each dish
+export const RECIPE_STATION = { hotTea: 0, butterBun: 1, condensedToast: 2, noodleSpam: 3 };
 export const VESSEL_NAME = { cup: ['杯', 'Cup'], plate: ['碟', 'Plate'], bowl: ['碗', 'Bowl'] };
 export const START_STOCK = { tea: 7, milk: 7, bun: 5, butter: 8, bread: 5, condensed: 5, noodles: 4, luncheon: 4, egg: 5 };
 

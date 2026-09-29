@@ -128,8 +128,8 @@
       </a>
       <a class="shop counter" href="counter/">
         <div class="art"><span class="sign">快餐</span></div>
-        <div class="body"><h3>Counter Rush</h3><p>Just you behind the counter. Pull the milk tea, watch the toaster and the noodle pot, and serve four stools before they give up.</p></div>
-        <div class="foot"><span class="progress">New · prototype</span><span class="play">Play</span></div>
+        <div class="body"><h3>Counter Rush</h3><p>Just you behind the counter. Pull the milk tea, watch the toaster and the noodle pot, clear six days, then try 搏命 Do or Die.</p></div>
+        <div class="foot"><span class="progress" data-counter>New game</span><span class="play">Play</span></div>
       </a>
     </div>
   </section>
@@ -151,6 +151,7 @@
 
 <script type="module">
   import { levelOf } from './js/data.js';
+  import { DAYS } from './counter/levels.js';
   const views = { pick: document.getElementById('pick'), hongkong: document.getElementById('hongkong'), japan: document.getElementById('japan') };
   function show(name){
     for (const [k, el] of Object.entries(views)) el.hidden = k !== name;
@@ -169,6 +170,15 @@
       if (s && s.day) el.textContent = `Day ${s.day} · Level ${levelOf(s.stars || 0)}`;
     } catch (e) { /* no save: keep "New game" */ }
   }
+  // Counter Rush keeps its own progress: the furthest day open and the stars so far
+  try {
+    const p = JSON.parse(localStorage.getItem('counter-rush-progress-v1') || 'null'), el = document.querySelector('[data-counter]');
+    if (p && p.stars){
+      const stars = Object.values(p.stars).reduce((a, b) => a + b, 0);
+      let day = 1; while (day < DAYS.length && (p.stars[day] || 0) >= 1) day++;
+      el.textContent = (p.stars[DAYS.length] || 0) >= 1 ? `搏命 unlocked · ${stars}★` + (p.endless ? ` · best level ${p.endless.level}` : '') : `Day ${day} · ${stars}★`;
+    }
+  } catch (e) { /* keep "New game" */ }
 </script>
 </body>
 </html>

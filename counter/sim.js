@@ -1,19 +1,26 @@
 // Counter Rush: one day at the counter. Pure state and rules, no drawing, so a script can play it.
 // Everything the player does is one of the exported actions; tick() moves time on.
 // Things worth a sound or a floating number are pushed onto run.events for the page to pick up.
-import { INGREDIENTS, APPLIANCES, RECIPES, RECIPE_ORDER, START_STOCK, DAY, STATIONS, candidates, finished, partsCost, rawInput } from './recipes.js';
+import { INGREDIENTS, APPLIANCES, RECIPES, RECIPE_ORDER, RECIPE_STATION, START_STOCK, DAY, STATIONS, candidates, finished, partsCost, rawInput } from './recipes.js';
+import { ENDLESS } from './levels.js';
 
 const ORDER_WEIGHTS = { hotTea: 3, butterBun: 2, condensedToast: 2, noodleSpam: 2 };
 export const SEAT_WALK = 320;          // px per second, customers walking along the counter
 export const DOOR_X = 1230;            // they come in (and leave) through the door on the right
 
-// cfg: the difficulty knobs from settings.js (patience, pace, window, target), all ×1 / DAY.target by default
+// cfg (levels.js runConfig): patience, pace, window, target, two (chance of a two-item order),
+// open (station indices that are open), endless (Do or Die), plus labels for the page.
 export function newRun(rnd = Math.random, cfg = {}){
-  cfg = { patience: 1, pace: 1, window: 1, target: DAY.target, ...cfg };
-  return {
+  cfg = { patience: 1, pace: 1, window: 1, target: DAY.target, two: DAY.twoItemChance, open: STATIONS.map((_, i) => i), endless: false, ...cfg };
+  const run = {
     rnd, cfg, t: 0, over: false, closed: false,
     target: cfg.target,
     cfgLabel: cfg.label || 'Normal',
+    dayLabel: cfg.dayLabel || '',
+    open: cfg.open,
+    menu: RECIPE_ORDER.filter(r => cfg.open.includes(RECIPE_STATION[r])),
+    // Do or Die: the level, how it plays, and the takings mark for the next one
+    endless: cfg.endless, level: 1, lv: { pace: 1, patience: 1, two: cfg.two }, nextMark: 0,
     // each appliance's green window stretches or shrinks with the difficulty; `ready` stays put
     timing: Object.fromEntries(Object.entries(APPLIANCES).map(([k, a]) => [k, { ready: a.ready, burn: a.ready + (a.burn - a.ready) * cfg.window }])),
     cash: DAY.startCash, sales: 0, tips: 0, stockSpent: 0, waste: 0,
@@ -28,6 +35,8 @@ export function newRun(rnd = Math.random, cfg = {}){
     events: [],
     nextId: 1,
   };
+  if (cfg.endless){ run.strikes = ENDLESS.strikes; run.lv = ENDLESS.level(1); run.nextMark = ENDLESS.mark(1); }
+  return run;
 }
 
 const ev = (run, kind, o = {}) => run.events.push({ kind, ...o });
@@ -62,6 +71,7 @@ function place(run, parts, mess, i){
 // Click a bin in station i: the raw part for its appliance goes in the appliance, anything else onto its plate.
 export function useBin(run, ing, i){
   const st = STATIONS[i];
+  if (!run.open.includes(i)) return `The ${st.name.toLowerCase()} station isn't open yet.`;
   if (st.app && APPLIANCES[st.app].takes === ing) return loadAppliance(run, st.app, { bin: ing });
   return addIngredient(run, ing, i);
 }
@@ -187,10 +197,14 @@ function arrive(run){
   const free = run.seats.map((s, i) => seatFree(s) ? i : -1).filter(i => i >= 0);
   if (!free.length) return false;
   const seat = free[Math.floor(run.rnd() * free.length)];
-  const two = run.rnd() < DAY.twoItemChance;
-  const order = [pick(run, ORDER_WEIGHTS)];
-  if (two){ order.unshift('hotTea'); if (order[1] === 'hotTea') order[1] = pick(run, { butterBun: 1, condensedToast: 1, noodleSpam: 1 }); }
-  const max = DAY.patience[order.length - 1] * run.cfg.patience;
+  // only what today's open stations can make; a two-item order is a milk tea and something to eat
+  const menu = Object.fromEntries(run.menu.map(r => [r, ORDER_WEIGHTS[r]])), food = run.menu.filter(r => r !== 'hotTea');
+  const order = [pick(run, menu)];
+  if (run.rnd() < run.lv.two && run.menu.includes('hotTea') && food.length){
+    order.unshift('hotTea');
+    if (order[1] === 'hotTea') order[1] = pick(run, Object.fromEntries(food.map(r => [r, 1])));
+  }
+  const max = DAY.patience[order.length - 1] * run.cfg.patience * run.lv.patience;
   run.seats[seat].cust = { id: run.nextId++, order, got: order.map(() => false), patience: max, max, state: 'arrive', x: DOOR_X, look: Math.floor(run.rnd() * 1e6) };
   run.customers++;
   ev(run, 'arrive', { seat });
@@ -207,13 +221,14 @@ function leave(run, seat, happy){
 export function tick(run, dt, seatX){
   if (run.over) return;
   run.t += dt;
-  const closing = run.t >= DAY.seconds;
+  const closing = !run.endless && run.t >= DAY.seconds;
   if (closing && !run.closed){ run.closed = true; ev(run, 'closing'); }
 
-  if (!closing && run.t >= run.nextArrival && run.t < DAY.seconds - 10){
+  if (!closing && run.t >= run.nextArrival && (run.endless || run.t < DAY.seconds - 10)){
     if (arrive(run)){
-      const ramp = 1 - .35 * run.t / DAY.seconds;
-      run.nextArrival = run.t + (DAY.gap[0] + run.rnd() * (DAY.gap[1] - DAY.gap[0])) * ramp / run.cfg.pace;
+      // a day gets busier towards closing; Do or Die gets busier by level instead
+      const ramp = run.endless ? 1 : 1 - .35 * run.t / DAY.seconds;
+      run.nextArrival = run.t + (DAY.gap[0] + run.rnd() * (DAY.gap[1] - DAY.gap[0])) * ramp / (run.cfg.pace * run.lv.pace);
     } else run.nextArrival = run.t + .5;
   }
 
@@ -234,6 +249,7 @@ export function tick(run, dt, seatX){
         run.sales += price; run.tips += tip; run.cash += price + tip; run.served++;
         ev(run, 'pay', { seat: i, price, tip });
         leave(run, i, true);
+        if (run.endless) levelUp(run);
       }
     }
   });
@@ -256,10 +272,22 @@ export function tick(run, dt, seatX){
   }
   run.deliveries = run.deliveries.filter(d => run.t < d.eta);
 
+  // Do or Die ends on the last strike
+  if (run.endless && run.walkouts >= run.strikes){ run.over = true; ev(run, 'over'); return; }
   // after closing time, the day ends once the last customer has gone (or a minute on, whatever happens)
   if (closing && (run.seats.every(s => !s.cust) || run.t >= DAY.seconds + 60)){
     run.over = true;
     ev(run, 'over');
+  }
+}
+
+// Do or Die: passing a takings mark is a new level, faster and less patient
+function levelUp(run){
+  while (takings(run) >= run.nextMark){
+    run.level++;
+    run.lv = ENDLESS.level(run.level);
+    run.nextMark = ENDLESS.mark(run.level);
+    ev(run, 'levelup', { level: run.level });
   }
 }
 
