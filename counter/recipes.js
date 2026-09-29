@@ -16,6 +16,17 @@ export const INGREDIENTS = {
   egg:       { name: 'Fried egg',       zh: '煎蛋',   unit: 1.5, pack: 10 },
 };
 export const BIN_ORDER = ['tea', 'milk', 'bun', 'butter', 'bread', 'condensed', 'noodles', 'luncheon', 'egg'];
+
+// The prep area is four stations, each a column: its ingredients on top, its appliance (or the bun
+// cabinet) in the middle, and its own cup, plate or bowl at the bottom where the dish comes together.
+// Butter sits in two stations; both bins draw on the same stock.
+export const STATIONS = [
+  { id: 'drinks',  zh: '飲品', name: 'Drinks',  bins: ['tea', 'milk'],                 app: 'kettle',  vessel: 'cup' },
+  { id: 'buns',    zh: '麵包', name: 'Buns',    bins: ['butter'],                      cabinet: 'bun', vessel: 'plate' },
+  { id: 'toast',   zh: '多士', name: 'Toast',   bins: ['bread', 'butter', 'condensed'], app: 'toaster', vessel: 'plate' },
+  { id: 'noodles', zh: '粉麵', name: 'Noodles', bins: ['noodles', 'luncheon', 'egg'],   app: 'pot',     vessel: 'bowl' },
+];
+export const VESSEL_NAME = { cup: ['杯', 'Cup'], plate: ['碟', 'Plate'], bowl: ['碗', 'Bowl'] };
 export const START_STOCK = { tea: 7, milk: 7, bun: 5, butter: 8, bread: 5, condensed: 5, noodles: 4, luncheon: 4, egg: 5 };
 
 // Cooked parts: what they're called on the counter.
@@ -42,13 +53,13 @@ export const APPLIANCE_ORDER = ['kettle', 'toaster', 'pot'];
 // vessel: what the finished dish (and the empty one left behind) sits in.
 export const RECIPES = {
   hotTea:         { name: 'Hot milk tea',   zh: '熱奶茶', jp: 'jit6 naai5 caa4', price: 18, vessel: 'cup',   parts: ['brewTea', 'milk'],
-                    steps: ['Tea leaves into the kettle', 'Hold on the sock to pull the tea when it’s ready', 'Add evaporated milk'] },
+                    steps: ['Click tea leaves: they go in the kettle', 'When the bar is green, hold on the kettle to pull the tea', 'Click evaporated milk'] },
   butterBun:      { name: 'Pineapple bun with butter', zh: '菠蘿油', jp: 'bo1 lo4 jau4', price: 16, vessel: 'plate', parts: ['bun', 'butter'],
-                    steps: ['Pineapple bun', 'A thick slice of butter'] },
+                    steps: ['Click the bun cabinet', 'Click butter'] },
   condensedToast: { name: 'Condensed milk toast', zh: '奶油多', jp: 'naai5 jau4 do1', price: 18, vessel: 'plate', parts: ['toast', 'butter', 'condensed'],
-                    steps: ['Bread into the toaster', 'Take it out when golden', 'Butter and condensed milk'] },
+                    steps: ['Click bread: it goes in the toaster', 'Click the toaster when it’s golden', 'Click butter and condensed milk'] },
   noodleSpam:     { name: 'Luncheon meat & egg noodles', zh: '餐蛋麵', jp: 'caan1 daan6 min6', price: 34, vessel: 'bowl', parts: ['boiled', 'luncheon', 'egg'],
-                    steps: ['Noodles into the pot', 'Drain when they’re soft', 'Luncheon meat and a fried egg'] },
+                    steps: ['Click noodles: they go in the pot', 'Click the pot when they’re soft', 'Click luncheon meat and egg'] },
 };
 export const RECIPE_ORDER = ['hotTea', 'butterBun', 'condensedToast', 'noodleSpam'];
 
@@ -90,8 +101,8 @@ export function vesselOf(parts){
 export const DAY = {
   seconds: 180,            // about three minutes
   seats: 4,
-  spots: 3,                // places on the work surface
-  target: 260,             // takings (sales + tips) to hit
+  spots: 4,                // one plate per station
+  target: 400,             // takings (sales + tips) to hit on Normal; tuned with a bot needing ~2.3s per action
   startCash: 40,
   eatSecs: 4.5,
   patience: [50, 64],      // seconds for one item, two items

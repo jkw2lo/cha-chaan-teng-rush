@@ -2,23 +2,36 @@
 // Top: stools and customers against the back wall. Middle: the counter. Bottom: the prep area.
 // Finished dishes use the cha chaan teng theme's icons (themes/cct/art.js), so they match the main game.
 import { TAU, HAN, iconCanvas } from '../js/art.js';
-import { INGREDIENTS, APPLIANCES, APPLIANCE_ORDER, BIN_ORDER, RECIPES, DAY, candidates, finished, missing, rawInput, vesselOf, partZh } from './recipes.js';
+import { INGREDIENTS, APPLIANCES, STATIONS, VESSEL_NAME, RECIPES, DAY, candidates, finished, missing, rawInput, vesselOf, partZh } from './recipes.js';
 import { spotDish, takings } from './sim.js';
 import { phrase } from '../themes/cct/index.js';
 
-export const W = 1280, H = 720;
+export const W = 1280, H = 820;
 const HUD = 48, COUNTER_Y = 296, PREP_Y = 372;
 export const SEAT_X = [230, 500, 770, 1040];
 const DOOR = { x: 1156, y: 132, w: 104 }, CLOCK = { x: 1208, y: 76 };
 
 // ---------- layout: every clickable/droppable box ----------
+// Each station is a column of three steps: bins (top), appliance or bun cabinet (middle), plate (bottom).
+const COL_W = 268, COL_GAP = 10, BIN_Y = 386, BIN_H = 76, MID_Y = 474, MID_H = 160, SPOT_Y = 646, SPOT_H = 164;
+const stations = STATIONS.map((st, i) => {
+  const x = 16 + i * (COL_W + COL_GAP), n = st.bins.length, bw = Math.min(104, (COL_W - 16 - (n - 1) * 8) / n), x0 = x + (COL_W - (n * bw + (n - 1) * 8)) / 2;
+  return { ...st, i, x, w: COL_W,
+    bins: st.bins.map((ing, k) => ({ ing, st: i, x: x0 + k * (bw + 8), y: BIN_Y, w: bw, h: BIN_H })),
+    mid: { key: st.app, st: i, x: x + 8, y: MID_Y, w: COL_W - 16, h: MID_H },
+    spot: { i, x: x + 8, y: SPOT_Y, w: COL_W - 16, h: SPOT_H } };
+});
+const UX = 16 + 4 * (COL_W + COL_GAP), UW = W - 16 - UX;
 export const L = {
   seats: SEAT_X.map((x, i) => ({ i, x: x - 125, y: HUD, w: 250, h: PREP_Y - HUD, cx: x })),
-  bins: BIN_ORDER.map((ing, i) => ({ ing, x: 16 + i * 100, y: 390, w: 92, h: 112 })),
-  phone: { x: 928, y: 390, w: 120, h: 112 },
-  trash: { x: 16, y: 522, w: 104, h: 186 },
-  spots: Array.from({ length: DAY.spots }, (_, i) => ({ i, x: 136 + i * 152, y: 522, w: 142, h: 186 })),
-  apps: Object.fromEntries(APPLIANCE_ORDER.map((k, i) => [k, { key: k, x: 606 + i * 224, y: 522, w: 210, h: 186 }])),
+  stations,
+  bins: stations.flatMap(s => s.bins),
+  spots: stations.map(s => s.spot),
+  apps: Object.fromEntries(stations.filter(s => s.app).map(s => [s.app, s.mid])),
+  cabinet: stations.find(s => s.cabinet).mid,
+  phone: { x: UX, y: BIN_Y, w: UW, h: 124 },
+  deliv: { x: UX, y: BIN_Y + 132, w: UW, h: 120 },
+  trash: { x: UX, y: SPOT_Y, w: UW, h: SPOT_H },
 };
 export const inBox = (b, x, y) => x >= b.x && x <= b.x + b.w && y >= b.y && y <= b.y + b.h;
 
@@ -112,6 +125,13 @@ function bowl(c, cx, cy, r, inside){
 function noodlesIn(c, cx, cy, r){
   c.strokeStyle = '#f0cc6a'; c.lineWidth = r * .07;
   for (let i = 0; i < 5; i++){ c.beginPath(); const y = cy - r * .22 + i * r * .06; c.moveTo(cx - r * .7, y); for (let k = 1; k <= 10; k++) c.lineTo(cx - r * .7 + k * r * .14, y + Math.sin(k * 1.7 + i) * r * .04); c.stroke(); }
+}
+export const FLIGHT = .45;       // seconds for a dish to fly from its plate to the customer
+// a clean, empty cup, plate or bowl (the outline on an empty station)
+function drawEmptyClean(c, vessel, cx, cy, r){
+  if (vessel === 'cup') cup(c, cx, cy, r, '#f4f1ea');
+  else if (vessel === 'bowl') bowl(c, cx, cy, r);
+  else plate(c, cx, cy + r * .3, r);
 }
 // empty dishes left on the counter
 export function drawEmpty(c, vessel, cx, cy, r){
@@ -306,7 +326,14 @@ function drawRoom(c){
   const g = c.createLinearGradient(0, PREP_Y, 0, H); g.addColorStop(0, '#b9c1c6'); g.addColorStop(1, '#97a0a6');
   c.fillStyle = g; c.fillRect(0, PREP_Y, W, H - PREP_Y);
   c.fillStyle = 'rgba(255,255,255,.08)'; for (let y = PREP_Y + 4; y < H; y += 5) c.fillRect(0, y, W, 1);
-  c.fillStyle = 'rgba(0,0,0,.12)'; c.fillRect(0, 512, W, 3);
+  // each station a tray of its own, with arrows down through its three steps
+  for (const st of stations){
+    c.fillStyle = 'rgba(255,255,255,.16)'; rr(c, st.x, PREP_Y + 8, st.w, H - PREP_Y - 12, 12); c.fill();
+    c.strokeStyle = 'rgba(40,50,56,.18)'; c.lineWidth = 1; rr(c, st.x + .5, PREP_Y + 8.5, st.w - 1, H - PREP_Y - 13, 12); c.stroke();
+    for (const y of [MID_Y - 5, SPOT_Y - 5]){
+      c.fillStyle = '#5d656c'; c.beginPath(); c.moveTo(st.x + st.w / 2 - 9, y - 4); c.lineTo(st.x + st.w / 2 + 9, y - 4); c.lineTo(st.x + st.w / 2, y + 5); c.closePath(); c.fill();
+    }
+  }
 }
 function condiments(c, x, kind){
   const base = COUNTER_Y + 22;
@@ -419,9 +446,33 @@ function timerBar(c, a, def, x, y, w, t){
 function appliance(c, key, a, box, t, run, pulling){
   const def = { ...APPLIANCES[key], ...run.timing[key] }, { x, y, w, h } = box, cx = x + w / 2;
   const ready = a.part && !a.ruined && a.t >= def.ready, late = ready && a.t >= def.burn - (def.burn - def.ready) * .35;
-  // mat and label
-  c.fillStyle = 'rgba(40,50,56,.18)'; rr(c, x, y, w, h, 10); c.fill();
+  c.fillStyle = 'rgba(40,50,56,.14)'; rr(c, x, y, w, h, 10); c.fill();
   if (ready){ c.strokeStyle = late && Math.sin(t * 14) > 0 ? '#ff5a4d' : '#2e9e5b'; c.lineWidth = 3; rr(c, x + 1.5, y + 1.5, w - 3, h - 3, 10); c.stroke(); }
+  // the art is drawn in a 210-wide frame and scaled into the box
+  const s = .78;
+  c.save(); c.translate(cx - 105 * s, y + 26 - 36 * s); c.scale(s, s);
+  applianceArt(c, key, a, def, t, pulling);
+  c.restore();
+  label(c, def.zh, def.name.split(' ')[0] === 'Kettle' ? 'Kettle' : def.name, x, y);
+  timerBar(c, a, def, x + 12, y + h - 16, w - 24, t);
+  let hint = '';
+  if (a.ruined) hint = `${def.late}! Click to bin`;
+  else if (!a.part) hint = key === 'kettle' ? 'Click tea leaves ↑' : key === 'toaster' ? 'Click bread ↑' : 'Click noodles ↑';
+  else if (a.t < def.ready) hint = key === 'kettle' ? 'Brewing…' : key === 'toaster' ? 'Toasting…' : 'Boiling…';
+  else hint = key === 'kettle' ? 'Ready: hold to pull ↓' : 'Ready: click to take out ↓';
+  const hcol = a.ruined ? '#9e1f19' : ready ? '#1d6b3f' : '#3a4448';
+  c.fillStyle = 'rgba(255,255,255,.82)'; rr(c, x + 12, y + h - 40, w - 24, 18, 9); c.fill();
+  text(c, hint, cx, y + h - 31, `700 12px ${SANS}`, hcol);
+}
+function label(c, zh, en, x, y){
+  c.font = `900 15px ${HAN}`; const zw = c.measureText(zh).width;
+  c.font = `700 12px ${SANS}`; const nw = c.measureText(en).width;
+  c.fillStyle = 'rgba(233,236,238,.9)'; rr(c, x + 5, y + 5, zw + nw + 22, 21, 10); c.fill();
+  text(c, zh, x + 12, y + 15.5, `900 15px ${HAN}`, '#2a221c', 'left');
+  text(c, en, x + 18 + zw, y + 15.5, `700 12px ${SANS}`, '#3a4448', 'left');
+}
+function applianceArt(c, key, a, def, t, pulling){
+  const x = 0, y = 0, cx = 105;
   const heat = a.part && !a.ruined;
   if (key === 'kettle'){
     // burner
@@ -477,22 +528,31 @@ function appliance(c, key, a, box, t, run, pulling){
     }
   }
   if (a.ruined){ smoke(c, cx, y + 70, t); }
-  // the label goes on top, so steam and smoke don't cover it
-  c.font = `900 16px ${HAN}`; const zw = c.measureText(def.zh).width;
-  c.font = `700 12px ${SANS}`; const nw = c.measureText(def.name).width;
-  c.fillStyle = 'rgba(233,236,238,.88)'; rr(c, x + 5, y + 5, zw + nw + 22, 22, 11); c.fill();
-  text(c, def.zh, x + 12, y + 16, `900 16px ${HAN}`, '#2a221c', 'left');
-  text(c, def.name, x + 18 + zw, y + 16, `700 12px ${SANS}`, '#3a4448', 'left');
-  timerBar(c, a, def, x + 14, y + h - 22, w - 28, t);
-  // what to do next
-  let hint = '';
-  if (a.ruined) hint = `${def.late}! Click to bin`;
-  else if (!a.part) hint = key === 'kettle' ? 'Drop tea leaves here' : key === 'toaster' ? 'Drop bread here' : 'Drop noodles here';
-  else if (a.t < def.ready) hint = key === 'kettle' ? 'Brewing…' : key === 'toaster' ? 'Toasting…' : 'Boiling…';
-  else hint = key === 'kettle' ? 'Ready: hold to pull!' : 'Ready: click to take out';
-  const hcol = a.ruined ? '#9e1f19' : ready ? '#1d6b3f' : '#3a4448';
-  c.fillStyle = 'rgba(255,255,255,.75)'; rr(c, x + 14, y + h - 44, w - 28, 18, 9); c.fill();
-  text(c, hint, cx, y + h - 35, `700 12px ${SANS}`, hcol);
+  if (a.ruined){ smoke(c, cx, y + 70, t); }
+}
+// the bun cabinet: a glass case of pineapple buns; click it for one
+function cabinet(c, box, n, t){
+  const { x, y, w, h } = box, cx = x + w / 2;
+  c.fillStyle = 'rgba(40,50,56,.14)'; rr(c, x, y, w, h, 10); c.fill();
+  const gx = cx - 90, gy = y + 32, gw = 180, gh = 82;
+  c.fillStyle = '#8a5a3a'; rr(c, gx - 6, gy + gh - 4, gw + 12, 16, 4); c.fill();
+  c.fillStyle = 'rgba(200,230,240,.35)'; rr(c, gx, gy, gw, gh, 6); c.fill();
+  c.fillStyle = '#e8e2d0'; c.fillRect(gx + 6, gy + 40, gw - 12, 3);
+  const shown = Math.min(n, 8);
+  for (let k = 0; k < shown; k++){
+    const row = k < 4 ? 1 : 0, col = k % 4;
+    c.drawImage(iconCanvas('bun', 96), gx + 12 + col * 41, gy + (row ? 44 : 4), 36, 36);
+  }
+  c.fillStyle = 'rgba(255,255,255,.35)'; c.beginPath(); c.moveTo(gx + 8, gy + 4); c.lineTo(gx + 40, gy + 4); c.lineTo(gx + 8, gy + 60); c.fill();
+  c.strokeStyle = '#c9a57a'; c.lineWidth = 3; rr(c, gx, gy, gw, gh, 6); c.stroke();
+  label(c, '麵包櫃', 'Bun cabinet', x, y);
+  badge2(c, x + w - 16, y + 16, n);
+  c.fillStyle = 'rgba(255,255,255,.82)'; rr(c, x + 12, y + h - 40, w - 24, 18, 9); c.fill();
+  text(c, n ? 'Click for a bun ↓' : 'Sold out: phone for more', cx, y + h - 31, `700 12px ${SANS}`, n ? '#3a4448' : '#9e1f19');
+}
+function badge2(c, x, y, n){
+  c.fillStyle = n === 0 ? '#8a8f96' : n <= 2 ? '#c8372d' : '#15302a'; c.beginPath(); c.arc(x, y, 12, 0, TAU); c.fill();
+  text(c, String(n), x, y + 1, `700 12px ${SANS}`, '#fff');
 }
 function steam(c, x, y, t, strong){
   c.strokeStyle = strong ? 'rgba(255,255,255,.85)' : 'rgba(255,255,255,.45)'; c.lineWidth = 3;
@@ -514,7 +574,7 @@ function spotHint(sp){
   if (sp.mess) return [sp.mess, 'Drag to the bin'];
   if (rawInput(sp.parts)) return [`${partZh(sp.parts[0])} ${INGREDIENTS[sp.parts[0]].name}`, sp.parts[0] === 'tea' ? '→ into the kettle' : sp.parts[0] === 'bread' ? '→ into the toaster' : '→ into the pot'];
   const dish = finished(sp.parts);
-  if (dish) return [`${RECIPES[dish].zh} ready`, 'Drag to the customer'];
+  if (dish) return [`${RECIPES[dish].zh} ready`, 'Waiting for someone to order it'];
   const cs = candidates(sp.parts);
   if (cs.length === 1){ const m = missing(sp.parts, cs[0]); return [`→ ${RECIPES[cs[0]].zh}`, '+ ' + m.map(partZh).join(' + ')]; }
   return [cs.map(r => RECIPES[r].zh).join(' or '), ''];
@@ -535,17 +595,9 @@ function speech(c, cu, x, age){
   text(c, cu.said.jp, bx + 10, by + 31, `italic 500 11px ${SANS}`, '#f2d27a', 'left');
   c.restore();
 }
-function dropTargets(c, run, d, t){
-  const glow = (b, col) => { c.save(); c.setLineDash([10, 7]); c.lineDashOffset = -t * 30; c.strokeStyle = col; c.lineWidth = 3; rr(c, b.x + 3, b.y + 3, b.w - 6, b.h - 6, 12); c.stroke(); c.restore(); };
-  const green = 'rgba(46,158,91,.9)';
-  if (d.ing){
-    for (const k of APPLIANCE_ORDER) if (APPLIANCES[k].takes === d.ing && !run.apps[k].part) glow(L.apps[k], green);
-    return;
-  }
-  const bag = d.bag, dish = !bag.mess && finished(bag.parts);
-  if (bag.mess){ glow(L.trash, 'rgba(200,55,45,.9)'); return; }
-  if (dish) run.seats.forEach((s, i) => { const cu = s.cust; if (cu && cu.state === 'wait' && cu.order.some((o, j) => o === dish && !cu.got[j])) glow({ ...L.seats[i], y: HUD + 4, h: PREP_Y - HUD - 8 }, green); });
-  if (rawInput(bag.parts)) for (const k of APPLIANCE_ORDER) if (APPLIANCES[k].takes === bag.parts[0] && !run.apps[k].part) glow(L.apps[k], green);
+function dropTargets(c, t){
+  c.save(); c.setLineDash([10, 7]); c.lineDashOffset = -t * 30; c.strokeStyle = 'rgba(200,55,45,.9)'; c.lineWidth = 3;
+  const b = L.trash; rr(c, b.x + 3, b.y + 3, b.w - 6, b.h - 6, 12); c.stroke(); c.restore();
 }
 
 // ---------- one frame ----------
@@ -579,6 +631,7 @@ export function drawFrame(c, run, ui){
       const served = cu.order.filter((d, j) => cu.got[j]);
       served.forEach((d, j) => {
         const dx = x + (j - (served.length - 1) / 2) * 64;
+        if (ui.flights.some(f => f.seat === i && f.dish === d)) return;     // still in the air
         if (cu.state === 'eat' && cu.eat > 1.5) drawEmpty(c, RECIPES[d].vessel, dx, COUNTER_Y + 12, 26);
         else { c.drawImage(iconCanvas(d, 128), dx - 30, COUNTER_Y - 18, 60, 60); if (d === 'hotTea') steam(c, dx, COUNTER_Y - 14, t + j, false); }
       });
@@ -590,73 +643,73 @@ export function drawFrame(c, run, ui){
       c.fillStyle = `rgba(242,210,122,${pulse})`; rr(c, x - 62, COUNTER_Y - 30, 124, 24, 12); c.fill();
       text(c, 'Click to clear 收碟', x, COUNTER_Y - 18, `700 12px ${SANS}`, '#2a221c');
     }
-    // drop highlight
-    if (ui.dropSeat === i){ c.strokeStyle = ui.dropOk ? '#2e9e5b' : '#c8372d'; c.lineWidth = 4; rr(c, L.seats[i].x + 6, HUD + 6, L.seats[i].w - 12, PREP_Y - HUD - 12, 14); c.stroke(); }
   });
 
-  // bins
+  // bins, on top of each station
   for (const b of L.bins){
-    const n = run.stock[b.ing], coming = run.deliveries.find(d => d.ing === b.ing);
-    c.fillStyle = ui.hover === b ? '#e8ecef' : '#d8dde0'; rr(c, b.x, b.y, b.w, b.h, 10); c.fill();
-    c.fillStyle = '#6f787e'; rr(c, b.x + 6, b.y + 6, b.w - 12, 62, 8); c.fill();
-    c.globalAlpha = n > 0 ? 1 : .3; drawIngredient(c, b.ing, b.x + b.w / 2, b.y + 38, 24); c.globalAlpha = 1;
-    text(c, INGREDIENTS[b.ing].zh, b.x + b.w / 2, b.y + 82, `900 15px ${HAN}`, '#2a221c');
-    text(c, INGREDIENTS[b.ing].name, b.x + b.w / 2, b.y + 99, `500 10.5px ${SANS}`, '#4a5458');
-    const bc = n === 0 ? '#8a8f96' : n <= 2 ? '#c8372d' : '#15302a';
-    c.fillStyle = bc; c.beginPath(); c.arc(b.x + b.w - 12, b.y + 12, 13, 0, TAU); c.fill();
-    text(c, String(n), b.x + b.w - 12, b.y + 13, `700 13px ${SANS}`, '#fff');
-    if (coming){ c.fillStyle = coming.express ? '#e39b2d' : '#3f7fae'; rr(c, b.x + 4, b.y + 4, 44, 16, 8); c.fill(); text(c, `🚚${Math.ceil(coming.eta - run.t)}s`, b.x + 26, b.y + 12.5, `700 10px ${SANS}`, '#fff'); }
-    if (ui.flashBin === b.ing){ c.strokeStyle = '#c8372d'; c.lineWidth = 3; rr(c, b.x, b.y, b.w, b.h, 10); c.stroke(); }
+    const n = run.stock[b.ing], coming = run.deliveries.find(d => d.ing === b.ing), cx = b.x + b.w / 2;
+    c.fillStyle = ui.hover === b ? '#f1f3f4' : '#dde1e4'; rr(c, b.x, b.y, b.w, b.h, 9); c.fill();
+    c.fillStyle = '#6f787e'; rr(c, b.x + 5, b.y + 5, b.w - 10, 42, 7); c.fill();
+    c.globalAlpha = n > 0 ? 1 : .3; drawIngredient(c, b.ing, cx, b.y + 26, 16); c.globalAlpha = 1;
+    text(c, INGREDIENTS[b.ing].zh, cx, b.y + 57, `900 13px ${HAN}`, '#2a221c');
+    text(c, INGREDIENTS[b.ing].name, cx, b.y + 70, `500 9.5px ${SANS}`, '#4a5458');
+    badge2(c, b.x + b.w - 10, b.y + 10, n);
+    if (coming){ c.fillStyle = coming.express ? '#e39b2d' : '#3f7fae'; rr(c, b.x + 3, b.y + 3, 40, 15, 7); c.fill(); text(c, `🚚${Math.ceil(coming.eta - run.t)}s`, b.x + 23, b.y + 11, `700 9.5px ${SANS}`, '#fff'); }
   }
-  // the phone
-  { const p = L.phone, low = Object.values(run.stock).some(n => n <= 2);
+  // the middle step: appliances and the bun cabinet
+  for (const st of stations){
+    if (st.app) appliance(c, st.app, run.apps[st.app], st.mid, t, run, ui.pulling && st.app === 'kettle');
+    else cabinet(c, st.mid, run.stock[st.cabinet], t);
+    if (ui.hover === st.mid){ c.strokeStyle = 'rgba(255,255,255,.7)'; c.lineWidth = 2; rr(c, st.mid.x + 1, st.mid.y + 1, st.mid.w - 2, st.mid.h - 2, 10); c.stroke(); }
+  }
+  // the bottom step: each station's own cup, plate or bowl
+  run.spots.forEach((sp, i) => {
+    const b = L.spots[i], cx = b.x + b.w / 2, st = stations[i];
+    c.fillStyle = '#c9a57a'; rr(c, b.x, b.y, b.w, b.h, 10); c.fill();
+    c.fillStyle = 'rgba(255,255,255,.12)'; for (let k = 0; k < 6; k++) c.fillRect(b.x + 6, b.y + 12 + k * 26, b.w - 12, 2);
+    const dragging = ui.drag && ui.drag.spot === i && ui.drag.moved;
+    if (sp && !dragging){ drawBag(c, sp.parts, sp.mess, cx, b.y + 62, 42); if (!sp.mess && sp.parts.includes('brewTea')) steam(c, cx, b.y + 32, t + i, false); }
+    if (!sp){
+      // an empty cup, plate or bowl waiting to be built on
+      c.globalAlpha = .4; drawEmptyClean(c, st.vessel, cx, b.y + 66, 38); c.globalAlpha = 1;
+      const [zh, en] = VESSEL_NAME[st.vessel];
+      text(c, `${zh} ${en}: click ingredients above`, cx, b.y + b.h - 18, `700 11.5px ${SANS}`, 'rgba(42,34,28,.65)');
+    }
+    const [h1, h2] = dragging ? ['', ''] : spotHint(sp);
+    if (h1){ c.fillStyle = sp.mess ? 'rgba(158,31,25,.9)' : spotDish(sp) ? 'rgba(29,107,63,.92)' : 'rgba(21,48,42,.82)'; rr(c, b.x + 8, b.y + b.h - 44, b.w - 16, 38, 7); c.fill();
+      text(c, h1, cx, b.y + b.h - 33, `900 13px ${HAN}`, '#fff'); if (h2) text(c, h2, cx, b.y + b.h - 16, `700 11px ${SANS}`, '#f2d27a'); }
+  });
+  // the phone, deliveries and the bin, in the last column
+  { const p = L.phone, low = Object.values(run.stock).some(n => n <= 2), px = p.x + p.w / 2, py = p.y + 42;
     c.fillStyle = ui.hover === p ? '#f6d4c9' : '#efe6cf'; rr(c, p.x, p.y, p.w, p.h, 10); c.fill();
     if (low && Math.sin(t * 6) > 0){ c.strokeStyle = '#c8372d'; c.lineWidth = 3; rr(c, p.x, p.y, p.w, p.h, 10); c.stroke(); }
-    const px = p.x + p.w / 2, py = p.y + 44;
     c.fillStyle = '#b3261e'; c.beginPath(); c.moveTo(px - 36, py + 22); c.lineTo(px - 26, py - 8); c.lineTo(px + 26, py - 8); c.lineTo(px + 36, py + 22); c.closePath(); c.fill();
     c.fillStyle = '#8f1a14'; rr(c, px - 42, py - 26, 84, 16, 8); c.fill();
     c.fillStyle = '#f4ecd8'; c.beginPath(); c.arc(px, py + 8, 13, 0, TAU); c.fill();
     c.fillStyle = '#b3261e'; for (let k = 0; k < 8; k++){ const a = k / 8 * TAU; c.beginPath(); c.arc(px + Math.cos(a) * 8, py + 8 + Math.sin(a) * 8, 2, 0, TAU); c.fill(); }
-    text(c, '入貨', px, p.y + 84, `900 16px ${HAN}`, '#2a221c'); text(c, 'Phone the supplier', px, p.y + 100, `500 10.5px ${SANS}`, '#4a5458'); }
-  // deliveries on the way
-  { let y = 400; text(c, '送貨中 On the way', 1062, y, `700 12px ${SANS}`, '#2a3438', 'left');
-    if (!run.deliveries.length) text(c, 'Nothing ordered', 1062, y + 20, `500 12px ${SANS}`, '#4a5458', 'left');
-    for (const d of run.deliveries){ y += 20; const f = 1 - (d.eta - run.t) / d.total;
-      text(c, `${INGREDIENTS[d.ing].zh}${d.express ? ' ⚡' : ''}`, 1062, y, `900 13px ${HAN}`, '#2a221c', 'left');
-      c.fillStyle = 'rgba(0,0,0,.15)'; rr(c, 1140, y - 5, 110, 10, 5); c.fill(); c.fillStyle = d.express ? '#e39b2d' : '#3f7fae'; rr(c, 1140, y - 5, Math.max(10, 110 * f), 10, 5); c.fill(); } }
-
-  // trash
-  { const b = L.trash, hot = ui.dropTrash;
-    c.fillStyle = hot ? '#f6d4c9' : 'rgba(40,50,56,.18)'; rr(c, b.x, b.y, b.w, b.h, 10); c.fill();
-    const cx = b.x + b.w / 2;
-    c.fillStyle = '#5d656c'; rr(c, cx - 32, b.y + 62, 64, 84, 6); c.fill();
-    c.fillStyle = '#7d868d'; rr(c, cx - 36, b.y + (hot ? 42 : 52), 72, 12, 5); c.fill();
-    c.fillStyle = '#4a5156'; for (let i = 0; i < 3; i++) c.fillRect(cx - 18 + i * 16, b.y + 72, 4, 64);
-    text(c, '垃圾', cx, b.y + 18, `900 16px ${HAN}`, '#2a221c'); text(c, 'Bin: drag here', cx, b.y + 164, `500 11px ${SANS}`, '#3a4448'); }
-
-  // work surface
-  run.spots.forEach((sp, i) => {
-    const b = L.spots[i], active = run.active === i, cx = b.x + b.w / 2;
-    c.fillStyle = '#c9a57a'; rr(c, b.x, b.y + 22, b.w, b.h - 22, 10); c.fill();
-    c.fillStyle = 'rgba(255,255,255,.12)'; for (let k = 0; k < 6; k++) c.fillRect(b.x + 6, b.y + 32 + k * 26, b.w - 12, 2);
-    text(c, active ? `▶ Spot ${i + 1}` : `Spot ${i + 1}`, b.x + 8, b.y + 10, `700 12px ${SANS}`, active ? '#15302a' : '#4a5458', 'left');
-    if (active){ c.strokeStyle = '#f2d27a'; c.lineWidth = 4; rr(c, b.x + 2, b.y + 24, b.w - 4, b.h - 26, 9); c.stroke(); }
-    if (ui.dropSpot === i){ c.strokeStyle = '#2e9e5b'; c.lineWidth = 4; rr(c, b.x + 2, b.y + 24, b.w - 4, b.h - 26, 9); c.stroke(); }
-    if (sp && !(ui.drag && ui.drag.spot === i)){ drawBag(c, sp.parts, sp.mess, cx, b.y + 88, 44); if (!sp.mess && sp.parts.includes('brewTea')) steam(c, cx, b.y + 58, t + i, false); }
-    const [h1, h2] = ui.drag && ui.drag.spot === i ? ['', ''] : spotHint(sp);
-    if (h1){ c.fillStyle = sp.mess ? 'rgba(158,31,25,.9)' : spotDish(sp) ? 'rgba(29,107,63,.92)' : 'rgba(21,48,42,.82)'; rr(c, b.x + 6, b.y + 142, b.w - 12, 38, 7); c.fill();
-      text(c, h1, cx, b.y + 153, `900 13px ${HAN}`, '#fff'); if (h2) text(c, h2, cx, b.y + 170, `700 11px ${SANS}`, '#f2d27a'); }
-    else if (!sp) text(c, active ? 'Ingredients go here' : 'Empty', cx, b.y + 110, `500 12px ${SANS}`, 'rgba(42,34,28,.6)');
-  });
-
-  // appliances
-  for (const k of APPLIANCE_ORDER){
-    appliance(c, k, run.apps[k], L.apps[k], t, run, ui.pulling && k === 'kettle');
-    if (ui.dropApp === k){ const b = L.apps[k]; c.strokeStyle = ui.dropOk ? '#2e9e5b' : '#c8372d'; c.lineWidth = 4; rr(c, b.x + 2, b.y + 2, b.w - 4, b.h - 4, 10); c.stroke(); }
-  }
+    text(c, '入貨', px, p.y + 88, `900 16px ${HAN}`, '#2a221c'); text(c, 'Phone the supplier', px, p.y + 105, `500 10.5px ${SANS}`, '#4a5458'); }
+  { const b = L.deliv; let y = b.y + 12;
+    c.fillStyle = 'rgba(255,255,255,.2)'; rr(c, b.x, b.y, b.w, b.h, 10); c.fill();
+    text(c, '送貨中 On the way', b.x + 8, y, `700 11px ${SANS}`, '#2a3438', 'left');
+    if (!run.deliveries.length) text(c, 'Nothing ordered', b.x + 8, y + 20, `500 11px ${SANS}`, '#4a5458', 'left');
+    for (const d of run.deliveries.slice(0, 5)){ y += 20; const f = 1 - (d.eta - run.t) / d.total;
+      text(c, `${INGREDIENTS[d.ing].zh}${d.express ? '⚡' : ''}`, b.x + 8, y, `900 12px ${HAN}`, '#2a221c', 'left');
+      c.fillStyle = 'rgba(0,0,0,.15)'; rr(c, b.x + 70, y - 4, b.w - 78, 8, 4); c.fill(); c.fillStyle = d.express ? '#e39b2d' : '#3f7fae'; rr(c, b.x + 70, y - 4, Math.max(8, (b.w - 78) * f), 8, 4); c.fill(); } }
+  { const b = L.trash, hot = ui.dropTrash, cx = b.x + b.w / 2;
+    c.fillStyle = hot ? '#f6d4c9' : 'rgba(40,50,56,.14)'; rr(c, b.x, b.y, b.w, b.h, 10); c.fill();
+    c.fillStyle = '#5d656c'; rr(c, cx - 32, b.y + 50, 64, 80, 6); c.fill();
+    c.fillStyle = '#7d868d'; rr(c, cx - 36, b.y + (hot ? 30 : 40), 72, 12, 5); c.fill();
+    c.fillStyle = '#4a5156'; for (let i = 0; i < 3; i++) c.fillRect(cx - 18 + i * 16, b.y + 60, 4, 60);
+    text(c, '垃圾 Bin', cx, b.y + 18, `900 15px ${HAN}`, '#2a221c'); text(c, 'Drag a plate here to toss it', cx, b.y + b.h - 16, `500 10.5px ${SANS}`, '#3a4448'); }
 
   // while dragging, show where it can go
-  if (ui.drag && ui.drag.moved) dropTargets(c, run, ui.drag, t);
+  if (ui.drag && ui.drag.moved) dropTargets(c, t);
+  // dishes on their way from the plate to the customer
+  for (const f of ui.flights){
+    const p = Math.min(1, f.age / FLIGHT), e = 1 - (1 - p) * (1 - p);
+    const x = f.x0 + (f.x1 - f.x0) * e, y = f.y0 + (f.y1 - f.y0) * e - Math.sin(p * Math.PI) * 60;
+    c.drawImage(iconCanvas(f.dish, 128), x - 30, y - 30, 60, 60);
+  }
   // coins flying from the counter to the till
   for (const k of ui.coins){
     if (k.age < 0) continue;
@@ -675,8 +728,7 @@ export function drawFrame(c, run, ui){
   // what's being dragged
   if (ui.drag && ui.drag.moved){
     c.globalAlpha = .92;
-    if (ui.drag.ing) drawIngredient(c, ui.drag.ing, ui.drag.x, ui.drag.y, 26);
-    else if (ui.drag.bag) drawBag(c, ui.drag.bag.parts, ui.drag.bag.mess, ui.drag.x, ui.drag.y, 40);
+    if (ui.drag.bag) drawBag(c, ui.drag.bag.parts, ui.drag.bag.mess, ui.drag.x, ui.drag.y, 40);
     c.globalAlpha = 1;
   }
   if (ui.paused){ c.fillStyle = 'rgba(12,16,36,.55)'; c.fillRect(0, 0, W, H); text(c, 'Paused', W / 2, H / 2 - 10, `700 48px ${SLAB}`, '#fff'); text(c, 'Space or the Pause button to carry on', W / 2, H / 2 + 30, `500 16px ${SANS}`, '#e0e6e2'); }

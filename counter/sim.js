@@ -1,7 +1,7 @@
 // Counter Rush: one day at the counter. Pure state and rules, no drawing, so a script can play it.
 // Everything the player does is one of the exported actions; tick() moves time on.
 // Things worth a sound or a floating number are pushed onto run.events for the page to pick up.
-import { INGREDIENTS, APPLIANCES, RECIPES, RECIPE_ORDER, START_STOCK, DAY, candidates, finished, partsCost, rawInput } from './recipes.js';
+import { INGREDIENTS, APPLIANCES, RECIPES, RECIPE_ORDER, START_STOCK, DAY, STATIONS, candidates, finished, partsCost, rawInput } from './recipes.js';
 
 const ORDER_WEIGHTS = { hotTea: 3, butterBun: 2, condensedToast: 2, noodleSpam: 2 };
 export const SEAT_WALK = 320;          // px per second, customers walking along the counter
@@ -22,8 +22,7 @@ export function newRun(rnd = Math.random, cfg = {}){
     deliveries: [],                                      // { ing, eta, express }
     seats: Array.from({ length: DAY.seats }, () => ({ cust: null, dirty: [] })),
     walkers: [],                                         // customers on their way out
-    spots: Array(DAY.spots).fill(null),                  // { parts: [], mess: null | 'why' }
-    active: 0,
+    spots: Array(DAY.spots).fill(null),                  // one per station: { parts: [], mess: null | 'why' }
     apps: Object.fromEntries(Object.keys(APPLIANCES).map(k => [k, { part: null, t: 0, pull: 0, ruined: false }])),
     nextArrival: DAY.firstAt,
     events: [],
@@ -47,35 +46,36 @@ function settle(run, i){
   if (!sp || sp.mess) return;
   if (!candidates(sp.parts).length && !rawInput(sp.parts)){ sp.mess = 'Wrong mix'; run.messes++; ev(run, 'mess', { spot: i }); return; }
   const dish = finished(sp.parts);
-  if (dish){
-    ev(run, 'dish', { spot: i, dish });
-    // the next thing you build goes on a fresh spot
-    if (run.active === i){ const e = run.spots.findIndex(s => !s); if (e >= 0) run.active = e; }
-  }
+  if (dish){ ev(run, 'dish', { spot: i, dish }); autoServe(run); }
 }
-function place(run, parts, mess, prefer){
-  let i = prefer != null && !run.spots[prefer] ? prefer : !run.spots[run.active] ? run.active : run.spots.findIndex(s => !s);
-  if (i < 0) return -1;
-  run.spots[i] = { parts, mess };
-  // hand focus to what just landed unless you were halfway through something else
-  const cur = run.spots[run.active];
-  if (!cur || cur === run.spots[i] || cur.mess || spotDish(cur)) run.active = i;
+export const stationOf = app => STATIONS.findIndex(st => st.app === app);
+// whatever comes out of an appliance lands on its station's plate, tipped in with what's there
+function place(run, parts, mess, i){
+  const sp = run.spots[i];
+  if (!sp){ run.spots[i] = { parts, mess }; return i; }
+  if (spotDish(sp) || sp.mess) return -1;
+  sp.parts.push(...parts);
+  if (mess) sp.mess = mess;
   return i;
 }
 
-// Click (or drag) an ingredient from its bin onto a spot. Returns an error string or null.
-export function addIngredient(run, ing, i = run.active){
+// Click a bin in station i: the raw part for its appliance goes in the appliance, anything else onto its plate.
+export function useBin(run, ing, i){
+  const st = STATIONS[i];
+  if (st.app && APPLIANCES[st.app].takes === ing) return loadAppliance(run, st.app, { bin: ing });
+  return addIngredient(run, ing, i);
+}
+// An ingredient onto station i's plate. Returns an error string or null.
+export function addIngredient(run, ing, i){
   if (run.over) return 'closed';
   if (!(run.stock[ing] > 0)) return `Out of ${INGREDIENTS[ing].name.toLowerCase()}. Phone the supplier.`;
   run.stock[ing]--;
   if (!run.spots[i]) run.spots[i] = { parts: [ing], mess: null };
   else run.spots[i].parts.push(ing);
-  run.active = i;
   ev(run, 'add', { spot: i, ing });
   settle(run, i);
   return null;
 }
-export function selectSpot(run, i){ run.active = i; }
 
 // Put something into an appliance: from a spot, or straight from its bin.
 export function loadAppliance(run, key, from){
@@ -97,13 +97,13 @@ export function loadAppliance(run, key, from){
 }
 
 // Take whatever's in an appliance out onto a spot. Early = undercooked, which is a mess.
-export function takeOut(run, key, prefer){
+export function takeOut(run, key){
   const a = run.apps[key], def = { ...APPLIANCES[key], ...run.timing[key] };
   if (a.ruined){ binAppliance(run, key); return null; }
   if (!a.part) return null;
   const early = a.t < def.ready;
-  const i = place(run, early ? [def.takes] : [def.gives], early ? def.early : null, prefer);
-  if (i < 0) return 'No room on the counter. Serve or bin something first.';
+  const i = place(run, early ? [def.takes] : [def.gives], early ? def.early : null, stationOf(key));
+  if (i < 0) return 'The plate below is full. Serve it or bin it first.';
   Object.assign(a, { part: null, t: 0, pull: 0 });
   if (early){ run.messes++; ev(run, 'mess', { spot: i, why: def.early }); }
   else ev(run, 'out', { app: key, spot: i });
@@ -114,27 +114,13 @@ export function takeOut(run, key, prefer){
 export function holdPull(run, dt){
   const a = run.apps.kettle, def = APPLIANCES.kettle;
   if (!a.part || a.ruined) return null;
-  if (!run.spots.some(s => !s)) return 'No room on the counter for a cup.';
+  const sp = run.spots[stationOf('kettle')];
+  if (sp && (spotDish(sp) || sp.mess)) return 'The cup below is full. Serve it or bin it first.';
   a.pull += dt;
   if (a.pull >= def.pull) return takeOut(run, 'kettle');
   return null;
 }
 export const releasePull = run => { run.apps.kettle.pull = 0; };
-
-// Drag one spot onto another: moves it, or tips it in with what's there.
-export function moveSpot(run, from, to){
-  if (from === to) return null;
-  const a = run.spots[from], b = run.spots[to];
-  if (!a) return null;
-  run.spots[from] = null;
-  if (!b){ run.spots[to] = a; if (run.active === from) run.active = to; return null; }
-  b.parts.push(...a.parts);
-  if (a.mess && !b.mess){ b.mess = a.mess; }
-  run.active = to;
-  ev(run, 'add', { spot: to });
-  settle(run, to);
-  return null;
-}
 
 function waste(run, parts, mess){
   const cost = Math.round((partsCost(parts) + (mess ? DAY.messFee : 0)) * 100) / 100;
@@ -157,17 +143,24 @@ export function binAppliance(run, key){
 }
 
 // ---------- the counter ----------
-export function serve(run, i, seat){
-  const dish = spotDish(run.spots[i]), c = run.seats[seat].cust;
-  if (!dish) return run.spots[i]?.mess ? 'That’s a mess. Drag it to the bin.' : 'That’s not finished yet.';
-  if (!c || c.state !== 'wait') return 'Nobody’s waiting there.';
-  const k = c.order.findIndex((d, j) => d === dish && !c.got[j]);
-  if (k < 0) return `They didn’t order ${RECIPES[dish].zh}.`;
-  c.got[k] = true;
-  run.spots[i] = null;
-  ev(run, 'serve', { seat, dish });
-  if (c.got.every(Boolean)){ c.state = 'eat'; c.eat = 0; c.frac = c.patience / c.max; }
-  return null;
+// A finished dish goes straight out to whoever ordered it, the most impatient first.
+// One nobody has ordered waits on its plate until someone does.
+function autoServe(run){
+  run.spots.forEach((sp, i) => {
+    const dish = spotDish(sp);
+    if (!dish) return;
+    let best = -1;
+    run.seats.forEach((s, k) => {
+      const c = s.cust;
+      if (c && c.state === 'wait' && c.order.some((d, j) => d === dish && !c.got[j]) && (best < 0 || c.patience < run.seats[best].cust.patience)) best = k;
+    });
+    if (best < 0) return;
+    const c = run.seats[best].cust;
+    c.got[c.order.findIndex((d, j) => d === dish && !c.got[j])] = true;
+    run.spots[i] = null;
+    ev(run, 'serve', { seat: best, spot: i, dish });
+    if (c.got.every(Boolean)){ c.state = 'eat'; c.eat = 0; c.frac = c.patience / c.max; }
+  });
 }
 export function clearSeat(run, seat){
   const s = run.seats[seat];
@@ -229,7 +222,7 @@ export function tick(run, dt, seatX){
     if (!c) return;
     if (c.state === 'arrive'){
       c.x = Math.max(seatX[i], c.x - SEAT_WALK * dt);
-      if (c.x <= seatX[i]){ c.state = 'wait'; c.saidAt = run.t; ev(run, 'order', { seat: i, order: c.order }); }
+      if (c.x <= seatX[i]){ c.state = 'wait'; c.saidAt = run.t; ev(run, 'order', { seat: i, order: c.order }); autoServe(run); }
     } else if (c.state === 'wait'){
       c.patience -= dt;
       if (c.patience <= 0){ run.walkouts++; ev(run, 'walkout', { seat: i }); leave(run, i, false); }

@@ -8,7 +8,7 @@ import { iconURL } from '../js/art.js';
 import { INGREDIENTS, BIN_ORDER, RECIPES, RECIPE_ORDER, APPLIANCES, DAY } from './recipes.js';
 import * as S from './sim.js';
 import { PRESETS, KNOBS, loadSettings, saveSettings, matchesPreset, settingsLabel } from './settings.js';
-import { W, H, L, SEAT_X, inBox, drawFrame } from './draw.js';
+import { W, H, L, SEAT_X, FLIGHT, inBox, drawFrame } from './draw.js';
 
 useTheme({ ...cct, meta: { ...cct.meta, splash: { ...cct.meta.splash, board: '茶餐廳', word: 'COUNTER',
   tagZh: '快啲！客人等緊！', tag: 'Brew it, toast it, pull it, serve it. Four stools and one pair of hands.' } } });
@@ -21,7 +21,7 @@ let settings = loadSettings();
 const freshRun = () => S.newRun(Math.random, { ...settings, label: settingsLabel(settings) });
 let run = freshRun();
 let started = false, paused = false, phoneOpen = false, summaryShown = false;
-const ui = { t: 0, drag: null, floats: [], coins: [], hover: null, pulling: false };
+const ui = { t: 0, drag: null, floats: [], coins: [], flights: [], hover: null, pulling: false };
 
 // ---------- sizing: a 1280×720 stage, scaled to fit ----------
 let scale = 1, ox = 0, oy = 0;
@@ -57,7 +57,7 @@ function handleEvents(){
       case 'warn': sfx.tick(); break;
       case 'out': sfx.clear(); break;
       case 'burnt': sfx.walkout(); { const b = L.apps[e.app]; float(b.x + b.w / 2, b.y + 110, e.why + '!', '#9e1f19'); } break;
-      case 'serve': sfx.bell(); break;
+      case 'serve': sfx.bell(); { const b = L.spots[e.spot]; ui.flights.push({ dish: e.dish, seat: e.seat, x0: b.x + b.w / 2, y0: b.y + 62, x1: SEAT_X[e.seat], y1: 318, age: 0 }); } break;
       case 'pay': sfx.cash(); for (let k = 0; k < 4; k++) ui.coins.push({ x: SEAT_X[e.seat] + (k - 1.5) * 14, age: -k * .08 }); float(SEAT_X[e.seat], 200, `+$${e.price + e.tip}`, '#1d6b3f'); if (e.tip) float(SEAT_X[e.seat], 230, `tip $${e.tip}`, '#2e7d4f'); break;
       case 'walkout': sfx.walkout(); break;
       case 'arrive': sfx.door(); break;
@@ -73,10 +73,14 @@ function handleEvents(){
 }
 
 // ---------- input ----------
+// Clicks do almost everything: a bin sends its ingredient into its station's appliance or onto its plate,
+// an appliance hands its food down to the plate (the kettle wants a hold), and finished dishes serve themselves.
+// Dragging is only for tossing a plate into the bin.
 function hit(x, y){
   const bin = L.bins.find(b => inBox(b, x, y)); if (bin) return { bin };
+  if (inBox(L.cabinet, x, y)) return { bin: { ing: 'bun', st: L.cabinet.st }, mid: L.cabinet };
   const spot = L.spots.find(b => inBox(b, x, y)); if (spot) return { spot: spot.i };
-  const app = Object.values(L.apps).find(b => inBox(b, x, y)); if (app) return { app: app.key };
+  const app = Object.values(L.apps).find(b => inBox(b, x, y)); if (app) return { app: app.key, mid: app };
   if (inBox(L.trash, x, y)) return { trash: true };
   if (inBox(L.phone, x, y)) return { phone: true };
   const seat = L.seats.find(b => inBox(b, x, y)); if (seat) return { seat: seat.i };
@@ -89,61 +93,40 @@ cv.addEventListener('pointerdown', e => {
   if (!playing()) return;
   const p = toStage(e), h = hit(p.x, p.y);
   try { cv.setPointerCapture(e.pointerId); } catch (err) {}
-  if (h.bin) ui.drag = { ing: h.bin.ing, sx: p.x, sy: p.y, x: p.x, y: p.y };
+  if (h.bin) say(S.useBin(run, h.bin.ing, h.bin.st));
   else if (h.spot != null){
     const sp = run.spots[h.spot];
     if (sp) ui.drag = { spot: h.spot, bag: sp, sx: p.x, sy: p.y, x: p.x, y: p.y };
-    else S.selectSpot(run, h.spot);
+    else say('Click the ingredients above this plate.', false);
   } else if (h.app){
     const a = run.apps[h.app];
     if (a.ruined) S.binAppliance(run, h.app);
-    else if (h.app === 'kettle'){ if (a.part){ ui.pulling = true; startSizzle(); } else say('Drag tea leaves onto the kettle.', false); }
+    else if (h.app === 'kettle'){ if (a.part){ ui.pulling = true; startSizzle(); } else say('Click the tea leaves above the kettle.', false); }
     else if (a.part) say(S.takeOut(run, h.app));
-    else say(`Drag ${INGREDIENTS[APPLIANCES[h.app].takes].name.toLowerCase()} onto the ${APPLIANCES[h.app].name.toLowerCase()}.`, false);
+    else say(`Click the ${INGREDIENTS[APPLIANCES[h.app].takes].name.toLowerCase()} above the ${APPLIANCES[h.app].name.toLowerCase()}.`, false);
   } else if (h.phone) openPhone();
-  else if (h.seat != null){
-    if (!S.clearSeat(run, h.seat) && run.seats[h.seat].cust?.state === 'wait') say('Drag a finished dish here to serve it.', false);
-  }
+  else if (h.seat != null) S.clearSeat(run, h.seat);
 });
 cv.addEventListener('pointermove', e => {
   const p = toStage(e), h = hit(p.x, p.y);
-  ui.hover = h.bin || (h.phone ? L.phone : null);
+  ui.hover = h.mid || h.bin || (h.phone ? L.phone : null);
+  if (h.bin && !h.mid) ui.hover = L.bins.find(b => inBox(b, p.x, p.y));
   cv.style.cursor = h.bin || h.phone || (h.spot != null && run.spots[h.spot]) || h.app || (h.seat != null && run.seats[h.seat].dirty.length) ? 'pointer' : 'default';
   const d = ui.drag;
-  ui.dropSeat = ui.dropSpot = ui.dropApp = null; ui.dropTrash = false;
+  ui.dropTrash = false;
   if (!d) return;
   d.x = p.x; d.y = p.y;
   if (!d.moved && Math.hypot(p.x - d.sx, p.y - d.sy) > 6) d.moved = true;
   if (!d.moved) return;
   cv.style.cursor = 'grabbing';
-  if (h.spot != null && h.spot !== d.spot) ui.dropSpot = h.spot;
-  else if (h.app){ ui.dropApp = h.app; const a = run.apps[h.app], want = APPLIANCES[h.app].takes;
-    ui.dropOk = !a.part && (d.ing ? d.ing === want : d.bag.parts.length === 1 && d.bag.parts[0] === want && !d.bag.mess); }
-  else if (h.trash && d.bag) ui.dropTrash = true;
-  else if (h.seat != null && d.bag){ ui.dropSeat = h.seat; const cu = run.seats[h.seat].cust, dish = S.spotDish(d.bag);
-    ui.dropOk = !!(cu && cu.state === 'wait' && dish && cu.order.some((o, j) => o === dish && !cu.got[j])); }
+  ui.dropTrash = !!h.trash;
 });
 function endPointer(e){
   if (ui.pulling){ ui.pulling = false; stopSizzle(); S.releasePull(run); }
-  const d = ui.drag; ui.drag = null;
-  ui.dropSeat = ui.dropSpot = ui.dropApp = null; ui.dropTrash = false;
-  if (!d || !playing()) return;
-  const p = toStage(e), h = hit(p.x, p.y);
-  if (!d.moved){
-    if (d.ing) say(S.addIngredient(run, d.ing));
-    else S.selectSpot(run, d.spot);
-    return;
-  }
-  if (d.ing){
-    if (h.spot != null) say(S.addIngredient(run, d.ing, h.spot));
-    else if (h.app) say(S.loadAppliance(run, h.app, { bin: d.ing }));
-    return;
-  }
-  if (run.spots[d.spot] !== d.bag) return;      // it changed under us (it can't, but be safe)
-  if (h.seat != null) say(S.serve(run, d.spot, h.seat));
-  else if (h.spot != null) say(S.moveSpot(run, d.spot, h.spot));
-  else if (h.app) say(S.loadAppliance(run, h.app, { spot: d.spot }));
-  else if (h.trash) S.binSpot(run, d.spot);
+  const d = ui.drag; ui.drag = null; ui.dropTrash = false;
+  if (!d || !playing() || !d.moved) return;
+  const h = hit(...Object.values(toStage(e)));
+  if (h.trash && run.spots[d.spot] === d.bag) S.binSpot(run, d.spot);
 }
 cv.addEventListener('pointerup', endPointer);
 cv.addEventListener('pointercancel', endPointer);
@@ -153,7 +136,6 @@ addEventListener('keydown', e => {
   if (e.key === ' ' && started && !run.over && !phoneOpen){ e.preventDefault(); togglePause(); }
   else if (e.key === 'Escape' && phoneOpen) closePhone();
   else if ((e.key === 'p' || e.key === 'P') && playing()) phoneOpen ? closePhone() : openPhone();
-  else if (['1', '2', '3'].includes(e.key) && playing()) S.selectSpot(run, +e.key - 1);
 });
 
 // ---------- the phone ----------
@@ -199,11 +181,11 @@ function showCard(kind){
       ${kind === 'intro' ? `<p>Four stools, a kettle, a toaster and a noodle pot. Hit the takings target before 11:00. Set how hard the morning is below; you can change it again after each round.</p>${difficultyHTML()}` : ''}
       <ul class="recipes">${recipeHTML()}</ul>
       <div class="how">
-        <p><b>Build</b>: click an ingredient to put it on the highlighted spot (click a spot to pick it), or drag it onto any spot.
-           Cooked steps: drag bread, noodles or tea leaves onto their appliance, and take them out in the <span class="g">green</span> part of the timer.
-           Too early is undercooked, too late burns. Pull tea by <b>holding</b> the mouse on the kettle.</p>
-        <p><b>Serve</b>: drag a finished dish up to the customer. When they've eaten, click their empty dishes to free the stool.
-           A wrong mix is a mess: drag it to the bin (it costs you). Running low? Phone the supplier.</p>
+        <p><b>Each station is a column</b>: ingredients on top, the kettle, cabinet, toaster or pot in the middle, and its cup, plate or bowl at the bottom.
+           Click an ingredient and it goes where it belongs. Take food out of an appliance in the <span class="g">green</span> part of its timer:
+           too early is undercooked, too late burns. Pull the tea by <b>holding</b> the mouse on the kettle.</p>
+        <p><b>Serving is automatic</b>: a finished dish goes straight to whoever ordered it. When they've eaten, click their empty dishes to free the stool.
+           A spoiled plate is a mess: drag it to the bin (it costs you). Running low? Phone the supplier.</p>
       </div>
       <button type="button" class="go" id="cardGo">${kind === 'intro' ? 'Open the counter' : 'Back to work'}</button>`;
     $('cardGo').onclick = () => { $('card').hidden = true; if (!started){ run = freshRun(); started = true; unlockAudio(); } else if (paused) togglePause(); };
@@ -306,6 +288,8 @@ function frame(now){
   for (const f of ui.floats) f.age += dt;
   for (const k of ui.coins) k.age += dt;
   ui.coins = ui.coins.filter(k => k.age < .9);
+  for (const f of ui.flights) f.age += dt;
+  ui.flights = ui.flights.filter(f => f.age < FLIGHT);
   ui.floats = ui.floats.filter(f => f.age < 1.6);
   drawFrame(c, run, { ...ui, paused: paused && $('card').hidden, flashBin: null });
   requestAnimationFrame(frame);
