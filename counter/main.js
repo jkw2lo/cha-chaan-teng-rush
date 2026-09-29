@@ -49,7 +49,8 @@ const spotCentre = i => ({ x: L.spots[i].x + L.spots[i].w / 2, y: L.spots[i].y +
 
 function handleEvents(){
   for (const e of run.events.splice(0)){
-    switch (e.kind){
+    // one event going wrong mustn't swallow the rest (like the end of the day)
+    try { switch (e.kind){
       case 'add': case 'load': sfx.queue(); break;
       case 'dish': sfx.ready(); { const p = spotCentre(e.spot); float(p.x, p.y - 30, RECIPES[e.dish].zh + '!', '#1d6b3f'); } break;
       case 'mess': sfx.waste(); { const p = spotCentre(e.spot); float(p.x, p.y - 30, e.why || 'Mess!', '#9e1f19'); } break;
@@ -65,10 +66,10 @@ function handleEvents(){
       case 'clear': sfx.clear(); break;
       case 'bin': sfx.waste(); if (e.cost) float(L.trash.x + 52, L.trash.y + 120, `-$${e.cost.toFixed(e.cost % 1 ? 1 : 0)}`, '#9e1f19'); break;
       case 'phone': sfx.queue(); break;
-      case 'delivery': sfx.delivery(); { const b = L.bins.find(b => b.ing === e.ing); float(b.x + b.w / 2, b.y + 20, `+${INGREDIENTS[e.ing].pack}`, '#1d4f7a'); } break;
+      case 'delivery': sfx.delivery(); { const b = L.bins.find(b => b.ing === e.ing) || L.cabinet; float(b.x + b.w / 2, b.y + 20, `+${INGREDIENTS[e.ing].pack}`, '#1d4f7a'); } break;
       case 'closing': say('11:00, closing time. Finish off the customers you have.', false); break;
       case 'over': setTimeout(showSummary, 900); break;
-    }
+    } } catch (err) { console.error(err); }
   }
 }
 
@@ -273,6 +274,8 @@ function historyHTML(h){
 // ---------- the loop ----------
 let last = performance.now(), phoneTick = 0;
 function frame(now){
+  // ask for the next frame first: if anything below throws, the counter keeps running instead of freezing
+  requestAnimationFrame(frame);
   // small steps, so a slow frame doesn't skip a timer's green window; a long gap (a hidden tab) is dropped
   const dt = Math.min(.25, (now - last) / 1000); last = now;
   ui.t += dt;
@@ -291,8 +294,8 @@ function frame(now){
   for (const f of ui.flights) f.age += dt;
   ui.flights = ui.flights.filter(f => f.age < FLIGHT);
   ui.floats = ui.floats.filter(f => f.age < 1.6);
-  drawFrame(c, run, { ...ui, paused: paused && $('card').hidden, flashBin: null });
-  requestAnimationFrame(frame);
+  try { drawFrame(c, run, { ...ui, paused: paused && $('card').hidden, flashBin: null }); }
+  catch (err) { console.error(err); }
 }
 
 resize();
