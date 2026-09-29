@@ -427,8 +427,8 @@ function caddy(iso, x, y, z){
   iso.cyl(x - .07, y, .04, z + .02, z + .13, 'rgba(235,240,240,.75)', '#f6f4ee');           // sugar
   iso.cyl(x - .07, y, .042, z + .13, z + .15, '#b9c0c7');
   iso.cyl(x + .01, y - .02, .022, z + .02, z + .15, '#3a2418', '#c8372d');                  // soy
-  iso.cyl(x + .06, y + .02, .022, z + .02, z + .13, '#c8372d', '#f4f1ea');                  // chilli
   iso.cyl(x + .1, y - .03, .015, z + .02, z + .1, '#e9dcc0');                               // toothpicks
+  iso.cyl(x + .06, y + .02, .022, z + .02, z + .13, '#c8372d', '#f4f1ea');                  // chilli
 }
 export function decor(iso, it, t, part){
   const { x, y } = it, doBase = part !== 'back', doBack = part !== 'base';

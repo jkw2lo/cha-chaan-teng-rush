@@ -394,10 +394,10 @@ export function floor(iso, type, x, y){
 // ---------------- stations ----------------
 // A stainless range with a coloured front panel (so each steamer reads at a glance).
 function range(iso, x, y, col){
-  iso.box(x + .05, y + .05, x + .95, y + .95, 0, .84, '#aeb6bd', { material: 'steel' });
-  iso.box(x + .05, y + .05, x + .95, y + .95, .1, .72, col, { edge: false });
+  iso.box(x + .07, y + .07, x + .93, y + .93, 0, .1, '#3a3d40');           // kick plate, set back under the body
+  iso.box(x + .05, y + .05, x + .95, y + .95, .1, .84, '#aeb6bd', { material: 'steel' });
+  iso.box(x + .05, y + .05, x + .95, y + .95, .16, .72, col, { edge: false });
   iso.box(x + .01, y + .01, x + .99, y + .99, .84, .92, PAL.steel, { material: 'steel' });
-  iso.box(x + .05, y + .05, x + .95, y + .95, 0, .1, '#3a3d40');           // kick plate
 }
 export function station(iso, st, t, busy){
   const { x, y } = st, ap = APPLIANCES[st.type], c = iso.ctx;
@@ -507,29 +507,44 @@ export function station(iso, st, t, busy){
       break;
     }
     case 'shelf': {
-      // a wire rack: sacks of flour at the bottom, spare baskets, jars of sauce, boxes of wrappers
-      const sh = [.08, .62, 1.14, 1.66];
-      for (const [px, py] of [[.1, .12], [.9, .12], [.1, .88], [.9, .88]]) iso.box(x + px - .02, y + py - .02, x + px + .02, y + py + .02, 0, 1.72, '#9aa3ab', { edge: false });
-      for (const z of sh) iso.box(x + .08, y + .1, x + .92, y + .9, z, z + .03, '#c3cad0', { material: 'steel' });
-      for (const [dx, col] of [[.28, '#e8dcc0'], [.66, '#ddd0b0']]){                      // flour sacks
+      // a wire rack: sacks of flour at the bottom, spare baskets, jars of sauce, boxes of wrappers.
+      // Drawn back to front: rear posts, then each shelf followed by what sits on it, then the front posts.
+      const post = (px, py) => iso.box(x + px - .02, y + py - .02, x + px + .02, y + py + .02, 0, 1.72, '#9aa3ab', { edge: false });
+      const board = z => iso.box(x + .08, y + .1, x + .92, y + .9, z, z + .03, '#c3cad0', { material: 'steel' });
+      post(.1, .12); post(.9, .12);
+      board(.08);
+      for (const [dx, col] of [[.28, '#e8dcc0'], [.66, '#ddd0b0']]){
         iso.box(x + dx - .17, y + .28, x + dx + .17, y + .74, .11, .5, col, { topCol: shade(col, 1.05) });
         iso.onFace('S', x + dx - .17, y + .74 - 1, cc => { cc.fillStyle = '#b3261e'; cc.font = `900 11px ${HAN}`; cc.textAlign = 'center'; cc.fillText('麵粉', 17, -26); });
       }
+      board(.62);
       for (const dx of [.3, .66]) for (let k = 0; k < 3; k++) basketTier(iso, x + dx, y + .5, .15, .65 + k * .1, .74 + k * .1, k === 2);
-      for (const [dx, dy, col] of [[.22, .4, '#3a1d12'], [.42, .6, '#b3261e'], [.62, .38, '#3a1d12'], [.78, .62, '#c98a2a']]){
+      board(1.14);
+      for (const [dx, dy, col] of [[.22, .4, '#3a1d12'], [.62, .38, '#3a1d12'], [.42, .6, '#b3261e'], [.78, .62, '#c98a2a']]){
         iso.cyl(x + dx, y + dy, .07, 1.17, 1.4, col, shade(col, 1.2));
         iso.cyl(x + dx, y + dy, .035, 1.4, 1.45, '#d23b2f');
       }
+      board(1.66);
       for (const [dx, col] of [[.3, '#f1ece0'], [.68, '#e8d9b0']]) iso.box(x + dx - .15, y + .3, x + dx + .15, y + .7, 1.69, 1.86, col, { topCol: shade(col, 1.05) });
+      post(.1, .88); post(.9, .88);
       break;
     }
     default: cct.station(iso, st, t, busy);                        // tart oven
   }
 }
+// The push bar, on the side the waiter holds.
+function pushBar(iso, cx, cy, hw, face){
+  const c = iso.ctx;
+  const [dx, dy] = DIRS[face] || [0, 1], bx = cx - dx * (hw + .05), by = cy - dy * (hw + .05), px = -dy, py = dx;
+  for (const s of [-1, 1]){ const [a, b] = iso.P(bx + px * s * hw * .8, by + py * s * hw * .8, .78), [a2, b2] = iso.P(bx + px * s * hw * .8, by + py * s * hw * .8, 1.02); c.strokeStyle = '#9aa3ab'; c.lineWidth = Math.max(1.5, iso.s * .03); c.beginPath(); c.moveTo(a, b); c.lineTo(a2, b2); c.stroke(); }
+  const [h0, k0] = iso.P(bx - px * hw * .8, by - py * hw * .8, 1.02), [h1, k1] = iso.P(bx + px * hw * .8, by + py * hw * .8, 1.02);
+  c.strokeStyle = '#d7dde2'; c.lineWidth = Math.max(2, iso.s * .045); c.lineCap = 'round'; c.beginPath(); c.moveTo(h0, k0); c.lineTo(h1, k1); c.stroke(); c.lineCap = 'butt';
+}
 // The steamer trolley: a steel cart on castors, a steam well, stacks of baskets and a push bar.
 function trolleyBody(iso, cx, cy, hw, t, stacks, moving, face = 'S', plaque = true){
-  const c = iso.ctx;
+  const [fdx, fdy] = DIRS[face] || [0, 1], barBehind = fdx + fdy > 0;   // pushed away from us: the bar is at the back
   contactShadow(iso, cx - hw, cy - hw, cx + hw, cy + hw, .22);
+  if (barBehind) pushBar(iso, cx, cy, hw, face);
   for (const [ox, oy] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]){
     const wx = cx + ox * (hw - .06), wy = cy + oy * (hw - .06);
     iso.cyl(wx, wy, .045, 0, .09, '#2b2b2b', '#555');
@@ -552,11 +567,7 @@ function trolleyBody(iso, cx, cy, hw, t, stacks, moving, face = 'S', plaque = tr
     for (let k = 0; k < n; k++) basketTier(iso, cx + ox * hw / .4, cy + oy * hw / .4, r, .845 + k * .1, .845 + k * .1 + .09, k === n - 1);
   });
   steam(iso, cx, cy, .845 + .3, t, moving ? 2 : 1);
-  // the push bar on the side the waiter holds
-  const [dx, dy] = DIRS[face] || [0, 1], bx = cx - dx * (hw + .05), by = cy - dy * (hw + .05), px = -dy, py = dx;
-  for (const s of [-1, 1]){ const [a, b] = iso.P(bx + px * s * hw * .8, by + py * s * hw * .8, .78), [a2, b2] = iso.P(bx + px * s * hw * .8, by + py * s * hw * .8, 1.02); c.strokeStyle = '#9aa3ab'; c.lineWidth = Math.max(1.5, iso.s * .03); c.beginPath(); c.moveTo(a, b); c.lineTo(a2, b2); c.stroke(); }
-  const [h0, k0] = iso.P(bx - px * hw * .8, by - py * hw * .8, 1.02), [h1, k1] = iso.P(bx + px * hw * .8, by + py * hw * .8, 1.02);
-  c.strokeStyle = '#d7dde2'; c.lineWidth = Math.max(2, iso.s * .045); c.lineCap = 'round'; c.beginPath(); c.moveTo(h0, k0); c.lineTo(h1, k1); c.stroke(); c.lineCap = 'butt';
+  if (!barBehind) pushBar(iso, cx, cy, hw, face);
 }
 // On the floor: pushed ahead of the waiter.
 export function trolley(iso, x, y, face, t){
@@ -599,8 +610,8 @@ export function decor(iso, it, t, part){
       frontArc(iso, x + .5, y + .5, .47, .1, 'rgba(179,38,30,.5)', Math.max(1, iso.s * .03));
       iso.cyl(x + .5, y + .5, .24, .74, .765, 'rgba(200,225,235,.55)', 'rgba(215,235,242,.65)');
       iso.ell(x + .5, y + .5, .766, .23, null, 'rgba(255,255,255,.7)');
+      blueWhitePot(iso, x + .42, y + .4, .765, .075);                 // back to front: the pot, then the sauce dishes
       for (const [dx, dy, col] of [[.62, .42, '#3a1d12'], [.44, .62, '#c8372d']]){ iso.cyl(x + dx, y + dy, .045, .765, .79, '#fbfaf5', col); }
-      blueWhitePot(iso, x + .42, y + .4, .765, .075);
       break;
     }
     case 'woodRound': {
