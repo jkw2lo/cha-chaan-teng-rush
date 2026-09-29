@@ -1,6 +1,6 @@
 // DOM panels around the canvas. Everything here reads state; main.js wires the buttons.
-import { MENU, MENU_ORDER, INGREDIENTS, APPLIANCES, APPLIANCE_SHOP, DECOR, STYLES, DINING_SIZES, DAY_SECONDS, QUEUE_MAX, PASS_MAX, AMBIENCE_MAX, TARGET_REWARD, GOAL_REWARD, LEVEL_STARS, itemLevel, KITCHEN_SIZES, MAX_LEVEL, THEME, KNOWN_AFTER } from './data.js';
-import { known, readingTicket, level, itemReady, hasStation, visibleIngredients, clockHour, fmtClock, fmtMoney, dayProgress, capacity, shelves, packsRoom, incoming, passClaims, goalStatus, pickGoals } from './sim.js';
+import { MENU, MENU_ORDER, INGREDIENTS, APPLIANCES, APPLIANCE_SHOP, DECOR, STYLES, DINING_SIZES, DAY_SECONDS, QUEUE_MAX, PASS_MAX, AMBIENCE_MAX, TARGET_REWARD, GOAL_REWARD, LEVEL_STARS, itemLevel, KITCHEN_SIZES, MAX_LEVEL, THEME, KNOWN_AFTER, BOOSTS } from './data.js';
+import { boosted, known, readingTicket, level, itemReady, hasStation, visibleIngredients, clockHour, fmtClock, fmtMoney, dayProgress, capacity, shelves, packsRoom, incoming, passClaims, goalStatus, pickGoals } from './sim.js';
 import { ambience, appealGain, ambienceEffect } from './ambience.js';
 import { iconURL } from './art.js';
 import { seatReport } from './world.js';
@@ -109,11 +109,21 @@ export function renderSide(S, R){
     const t = tray[i];
     if (!t){ th += `<span class="qslot empty">${i + 1}</span>`; continue; }
     const f = Math.max(0, (t.fresh - R.t) / t.total);
-    th += `<span class="qslot pass" title="${MENU[t.item].name}, ${secs(t.fresh - R.t)} before it’s wasted"><img src="${icon(t.item)}" alt="${MENU[t.item].name}"><b>${i + 1}</b><i class="${f > .5 ? 'ok' : f > .25 ? 'warn' : 'late'}" style="width:${Math.round(f * 100)}%"></i></span>`;
+    th += `<button type="button" class="qslot pass" data-trash="${t.id}" title="${MENU[t.item].name}: ${secs(t.fresh - R.t)} before it goes stale. Click to throw it out."><img src="${icon(t.item)}" alt="${MENU[t.item].name}"><b>${i + 1}</b><span class="bin" aria-hidden="true">×</span><i class="fresh ${f > .5 ? 'ok' : f > .25 ? 'warn' : 'late'}" style="width:${Math.round(f * 100)}%"></i></button>`;
   }
   setHTML('tray', th);
-  $('tray').style.gridTemplateColumns = `repeat(${PASS_MAX}, ${PASS_MAX > 5 ? 44 : 58}px)`;   // a trolley has more spots than a hatch
+  $('tray').style.gridTemplateColumns = `repeat(${PASS_MAX}, ${PASS_MAX > 5 ? 36 : 48}px)`;
+  $('tray').style.gap = PASS_MAX > 5 ? '6px' : '';   // a trolley has more spots than a hatch
   $('trayHead').classList.toggle('full', tray.length >= PASS_MAX);
+
+  // boosters
+  setHTML('boosts', Object.entries(BOOSTS).map(([k, b]) => {
+    const label = (THEME.meta.boosts || {})[k] || { zh: k, name: k }, on = boosted(R, k), left = on ? R.boosts[k] - R.t : 0;
+    const desc = k === 'cook' ? `Cooks 35% faster for ${b.secs}s` : `Waiting customers twice as patient for ${b.secs}s`;
+    return `<button type="button" class="boost ${on ? 'on' : ''}" data-boost="${k}" ${!R || R.over || on || S.money < b.price ? 'disabled' : ''} title="${label.name}: ${desc}">
+      <span class="bzh">${label.zh}</span><span class="bname">${label.name}</span><em>${on ? `${Math.ceil(left)}s` : fmtMoney(b.price)}</em>
+      ${on ? `<i style="width:${Math.round(left / b.secs * 100)}%"></i>` : ''}</button>`;
+  }).join(''));
 
   // today
   const st = R ? R.stats : null;

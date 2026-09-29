@@ -1,6 +1,6 @@
 // One day of trading. `S` is the saved game, `R` is today's run.
 import { DAY_SECONDS, OPEN_HOUR, CLOSE_HOUR, QUEUE_MAX, PASS_MAX, GOALS, salesTarget, TARGET_REWARD, GOAL_REWARD, WALK_SPEED, CUSTOMER_SPEED, WAITER_SPEED,
-         WALKOUT_PENALTY, MENU, MENU_ORDER, INGREDIENTS, APPLIANCES, DECOR, BASE_PACKS, itemLevel, levelOf, MAX_LEVEL, KNOWN_AFTER, READING_BONUS, THEME } from './data.js';
+         WALKOUT_PENALTY, MENU, MENU_ORDER, INGREDIENTS, APPLIANCES, DECOR, BASE_PACKS, itemLevel, levelOf, MAX_LEVEL, KNOWN_AFTER, READING_BONUS, THEME, BOOSTS } from './data.js';
 import { ambience, ambienceEffect } from './ambience.js';
 import { DIRS, HATCH, key, accessOf, bfs, inDining, inKitchen, kitchenBlocked, diningBlocked,
          doorCell, seatReport } from './world.js';
@@ -15,6 +15,7 @@ export function newRun(S){
     t: 0, running: true, closing: false, over: false, forcedAt: null,
     spawnIn: 3, ticket: 1,
     customers: [], orders: [], queue: [], tray: [], waiters: [], deliveries: [], floaters: [], sparks: [], events: [],
+    boosts: { cook: 0, patience: 0 },        // game time each booster runs until
     avatar: { x: 3.5, y: 8.5, path: [], phase: 'idle', cookLeft: 0, cookTotal: 0, face: 'S' },
     stats: { revenue: 0, tips: 0, waste: 0, served: 0, walkouts: 0, lost: 0, made: 0, fast: 0, sold: {}, popStart: S.popularity, moneyStart: S.money },
     goals: pickGoals(S),
@@ -194,7 +195,7 @@ function updateCook(S, R, dt){
     A.cookTotal = A.cookLeft = MENU[q.item].cook * APPLIANCES[st.type].speed;
   }
   if (A.phase === 'cook'){
-    A.cookLeft -= dt;
+    A.cookLeft -= dt * (boosted(R, 'cook') ? BOOSTS.cook.speed : 1);
     if (A.cookLeft > 0) return;
     const batch = MENU[R.queue[0].item].batch || 1;      // steamers make several baskets per job
     // A trolley (dim sum) sheds its oldest basket nobody's waiting for, rather than jamming the kitchen.
@@ -325,6 +326,26 @@ export function passClaims(R){
   }
   return claims;
 }
+// ---------- boosters and throwing things out ----------
+export const boosted = (R, kind) => !!R && R.boosts && R.t < R.boosts[kind];
+export function buyBoost(S, R, kind){
+  const b = BOOSTS[kind];
+  if (!R || R.over || !R.running) return { msg: 'Boosters are for when the shop is open.' };
+  if (boosted(R, kind)) return { msg: 'That one’s already going.' };
+  if (S.money < b.price) return { msg: `That costs ${fmtMoney(b.price)}.` };
+  S.money -= b.price; R.boosts[kind] = R.t + b.secs;
+  R.stats.boosts = (R.stats.boosts || 0) + b.price;
+  emit(R, 'unlock');
+  return { ok: true };
+}
+// Bin something on the pass to free a spot. It counts as waste like anything that goes stale.
+export function discardTray(S, R, id){
+  const t = R && R.tray.find(t => t.id === id);
+  if (!t) return null;
+  R.tray.splice(R.tray.indexOf(t), 1);
+  wasteTray(S, R, t, 'thrown out');
+  return t;
+}
 function makeRoom(S, R, need){
   const claims = passClaims(R), claimed = {};
   for (const got of claims.values()) for (const [it, n] of Object.entries(got)) claimed[it] = (claimed[it] || 0) + n;
@@ -422,6 +443,7 @@ export function tick(S, R, dt){
     else if ((R.spawnIn -= dt) <= 0){ spawnCustomer(S, R); R.spawnIn = nextSpawn(S, R); }
   }
 
+  if (boosted(R, 'patience')) for (const o of R.orders) if (!o.sent) o.deadline += dt * BOOSTS.patience.slow;
   updateCustomers(S, R, dt);
   updateCook(S, R, dt);
 

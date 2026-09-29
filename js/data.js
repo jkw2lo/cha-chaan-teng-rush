@@ -12,7 +12,12 @@ export const WAITER_SPEED = 3.6;
 export const WALKOUT_PENALTY = 2.5;        // popularity lost when a customer gives up
 export const SELL_BACK = 0.5;
 // Learning mode: a dish counts as known after this many servings; tickets you fill by reading alone tip a little more.
-export const KNOWN_AFTER = 6, READING_BONUS = .15;            // refund when selling furniture or appliances
+export const KNOWN_AFTER = 6, READING_BONUS = .15;
+// Boosters, bought mid-day for busy spells. One of each can run at a time.
+export const BOOSTS = {
+  cook:     { price: 40, secs: 60, speed: 1 / .65 },    // the cook works about 35% faster
+  patience: { price: 60, secs: 60, slow: .5 },          // waiting tickets run down at half speed
+};            // refund when selling furniture or appliances
 
 // The kitchen can be knocked through too, once you reach the level for it.
 export const KITCHEN_SIZES = [

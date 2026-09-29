@@ -3,7 +3,7 @@ import { Iso, inPoly, shade } from './iso.js';
 import * as A from './art.js';
 import { APPLIANCES, DECOR, MENU, OPEN_HOUR, THEME } from './data.js';
 import { DH, KW, KH, WALL_H, DIRS, worldW, diningW, doorCell, accessOf, seatReport, inKitchen, inDining, wallSide } from './world.js';
-import { clockHour, canMake } from './sim.js';
+import { clockHour, canMake, boosted } from './sim.js';
 
 const TAU = Math.PI * 2;
 const BB_Z = 2.35, BB_R = .44;   // station icon: height above the floor and radius, in cells
@@ -128,7 +128,13 @@ export function draw(ctx, cssW, cssH, dpr, S, R, ui, t){
       list.push({ k: w.x + w.y, f: () => A.drawPerson(iso, { x: w.x, y: w.y, z: 0, look: { skin: '#d9a57a', hair: '#1f1a17', style: 'short' }, walking: true, face: w.face, role: 'waiter', carrying: THEME.meta.trolley ? [] : w.items, cart: THEME.meta.trolley && w.phase === 'out' }, t) });
     }
     const Av = R.avatar;
-    list.push({ k: Av.x + Av.y, f: () => A.drawPerson(iso, { x: Av.x, y: Av.y, z: 0, look: { skin: '#e6b58c', hair: '#1f1a17' }, walking: Av.phase === 'walk', face: Av.face, role: 'cook', busy: Av.phase === 'cook' }, t) });
+    list.push({ k: Av.x + Av.y, f: () => {
+      const [hx, hy, hr] = A.drawPerson(iso, { x: Av.x, y: Av.y, z: 0, look: { skin: '#e6b58c', hair: '#1f1a17' }, walking: Av.phase === 'walk', face: Av.face, role: 'cook', busy: Av.phase === 'cook' }, t);
+      if (boosted(R, 'cook')){                       // a steaming cup floating over the cook while the booster runs
+        const sz = s * .42, bob = Math.sin(t * 4) * 3;
+        ctx.drawImage(A.iconCanvas(S.unlocked[0] || 'hotTea'), hx + hr * .8, hy - hr * 3.2 + bob, sz, sz);
+      }
+    } });
   } else {
     list.push({ k: 3.5 + 8.5, f: () => A.drawPerson(iso, { x: 3.5, y: 8.5, z: 0, look: { skin: '#e6b58c', hair: '#1f1a17' }, face: 'S', role: 'cook' }, t) });
   }

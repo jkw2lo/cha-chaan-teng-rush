@@ -12,6 +12,7 @@ export const meta = {
   intro: 'It’s Sunday morning at the Golden Dragon. Pour the pu-erh, keep the steamers going, and push the trolley between the tables before the whole family gets hungry.',
   saveKey: 'dimsum-rush-save-v1',
   passName: 'On the trolley', passZh: '點心車',
+  boosts: { cook: { zh: '濃茶', name: 'Strong tea for the cook' }, patience: { zh: '送小食', name: 'Free snacks round' } },
   passMax: 8,                 // the trolley holds more than a hatch
   trolley: true,              // waiters push a trolley out to the tables
   passOverflow: 'discard',

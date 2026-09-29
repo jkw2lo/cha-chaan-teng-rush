@@ -12,6 +12,7 @@ export const meta = {
   intro: 'You’ve taken over a tiny cha chaan teng. Brew the milk tea, warm the pineapple buns, keep the shelves stocked, and turn it into the busiest spot on the street.',
   saveKey: 'cct-rush-save-v1',
   passName: 'On the pass', passZh: '出餐',
+  boosts: { cook: { zh: '咖啡', name: 'Coffee for the cook' }, patience: { zh: '送茶', name: 'Free drinks round' } },
   // language for learning mode and spoken orders
   lang: { voice: 'zh-HK', name: 'Cantonese', romanisation: 'Jyutping' },
   splash: {

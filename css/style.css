@@ -56,7 +56,8 @@ button:focus-visible{outline:2px solid var(--gold); outline-offset:2px}
 .ticket{flex:0 0 auto; min-width:160px; background:var(--paper2); color:var(--ink); border-radius:2px 2px 6px 6px; padding:6px 8px 7px; box-shadow:0 3px 8px rgba(0,0,0,.35); position:relative; border-top:6px solid #d6cbb0; transform-origin:top center}
 .ticket::before{content:""; position:absolute; top:-12px; left:50%; width:10px; height:10px; margin-left:-5px; background:#9aa3ab; border-radius:50%}
 .ticket header{display:flex; justify-content:space-between; gap:14px; font:700 17px var(--slab); font-variant-numeric:tabular-nums}
-.ticket.late{animation:shake .5s infinite; background:#fff0ea}
+.ticket.late{animation:urgent 1.2s ease-in-out infinite; background:#fff0ea}
+@keyframes urgent{50%{box-shadow:0 3px 8px rgba(0,0,0,.35), 0 0 0 3px rgba(200,55,45,.55)}}   /* glows, doesn't move */
 .ticket.late header span{color:var(--red)}
 .ticket.sent{opacity:.6; background:#e7f6ea}
 @keyframes shake{0%,100%{transform:rotate(0)}25%{transform:rotate(-1.2deg)}75%{transform:rotate(1.2deg)}}
@@ -513,3 +514,30 @@ body.dragging, body.dragging *{cursor:grabbing !important; user-select:none}
 .ti.learn em{position:static; order:-1; justify-self:end; font-size:13px; line-height:1; margin-bottom:-4px}
 .ti.learn.known .lzh{font-size:20px; padding-top:2px}
 .card.banquet{border-top:4px solid #b3261e} .card.teahouse{border-top:4px solid #9a6a3e}
+
+/* ================= v8: wider side, readable slots, bin, boosters ================= */
+#app{grid-template-columns:360px 1fr; grid-template-rows:minmax(0, 1fr)}
+.side{min-height:0}
+.qslot{overflow:visible}
+.qslot img{border-radius:50%}
+.qslot b{top:-6px; right:-6px; z-index:2; box-shadow:0 0 0 2px var(--paper)}
+.qslot > i, .qslot > i.fresh{position:absolute; left:4px; right:auto; bottom:-8px; height:5px; border-radius:3px; z-index:1}
+.qslot.active::after, .qslot.pass::after{content:""; position:absolute; left:4px; right:4px; bottom:-8px; height:5px; border-radius:3px; background:#e3d8bf}
+.qslot > i{max-width:calc(100% - 8px)}
+button.qslot{border:0; padding:0; background:#fff; cursor:pointer; font:inherit}
+.qslot .bin{position:absolute; inset:0; display:none; place-items:center; border-radius:50%; background:rgba(200,55,45,.82); color:#fff; font:700 22px/1 var(--body)}
+.qslot.pass:hover .bin{display:grid}
+.cookbar{grid-template-columns:auto auto auto 1fr}
+.boosts{display:grid; gap:6px}
+.boost{position:relative; display:grid; grid-template-columns:auto 1fr auto; gap:8px; align-items:center; border:0; border-radius:10px; padding:5px 10px; background:#fff; box-shadow:inset 0 0 0 1px #d6c9ab; color:var(--ink); text-align:left; overflow:hidden; min-width:190px}
+.boost .bzh{font:900 16px var(--han); color:var(--red)}
+.boost .bname{font:600 12px var(--body)} .boost em{font:700 13px var(--slab); font-style:normal; color:var(--red)}
+.boost:hover:not(:disabled){box-shadow:inset 0 0 0 2px var(--gold)}
+.boost.on{background:#fff3cf; box-shadow:inset 0 0 0 2px var(--gold)} .boost.on em{color:#8a6a10}
+.boost > i{position:absolute; left:0; bottom:0; height:3px; background:var(--gold)}
+.boost:disabled:not(.on){opacity:.5}
+.cookbar .queue{grid-template-columns:repeat(5, 48px); gap:9px}
+.cookbar > .panel{padding:10px 16px 12px}
+.boost{min-width:176px}
+.col-feed{min-width:150px}
+.col-feed h2{white-space:nowrap}

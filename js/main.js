@@ -1,6 +1,6 @@
 import { DECOR, APPLIANCES, MENU, INGREDIENTS, MENU_ORDER, useTheme, THEME } from './data.js';
 import { fresh, load, save, clearSave } from './state.js';
-import { newRun, tick, clickStation, placeStockOrder, checkUnlocks, fmtMoney, itemReady, hasStation, maxed } from './sim.js';
+import { newRun, tick, clickStation, placeStockOrder, checkUnlocks, fmtMoney, itemReady, hasStation, maxed, discardTray, buyBoost, servingCost } from './sim.js';
 import { draw, hitTest, billboardHit, invalidateStatic, viewCentre, computeView } from './render.js';
 import { Iso } from './iso.js';
 import * as A from './art.js';
@@ -213,10 +213,15 @@ $('zoomIn').onclick = () => zoomTo(ui.cam.z * 1.25);
 $('zoomOut').onclick = () => zoomTo(ui.cam.z / 1.25);
 $('zoomKitchen').onclick = kitchenView;
 $('zoomAll').onclick = () => { ui.cam = { z: 1, x: 0, y: 0 }; };
+// Pinch (trackpad, arrives as ctrl+wheel) or a real mouse-wheel notch zooms.
+// Two-finger trackpad scrolling pans when zoomed in and is otherwise ignored, so resting
+// fingers on the trackpad can't nudge the view.
 canvas.addEventListener('wheel', e => {
   e.preventDefault();
   const [x, y] = pointer(e);
-  zoomTo(ui.cam.z * Math.exp(-e.deltaY * .0015), x, y);
+  const mouseNotch = e.deltaMode === 1 || (Math.abs(e.deltaY) >= 50 && Math.abs(e.deltaX) < 1 && Number.isInteger(e.deltaY));
+  if (e.ctrlKey || mouseNotch) zoomTo(ui.cam.z * Math.exp(-e.deltaY * (e.ctrlKey ? .01 : .0015)), x, y);
+  else if (ui.cam.z > 1.001) panBy(-e.deltaX, -e.deltaY);
 }, { passive: false });
 // drag on empty floor to pan (only when zoomed in)
 let pan = null, justPanned = false;
@@ -237,6 +242,21 @@ window.addEventListener('pointermove', e => {
 window.addEventListener('pointerup', () => {
   if (pan && pan.moved){ justPanned = true; setTimeout(() => { justPanned = false; }, 0); }
   pan = null; canvas.classList.remove('panning');
+});
+
+// ---------- binning from the pass, and boosters ----------
+$('tray').addEventListener('pointerdown', e => {
+  const b = e.target.closest('[data-trash]');
+  if (!b || phase !== 'day') return;
+  const t = discardTray(S, R, Number(b.dataset.trash));
+  if (t){ sfx.waste(); UI.flash(`Threw out ${MENU[t.item].zh} ${MENU[t.item].name.toLowerCase()} (−${fmtMoney(servingCost(t.item))}).`); }
+});
+$('boosts').addEventListener('pointerdown', e => {
+  const b = e.target.closest('[data-boost]');
+  if (!b || b.disabled) return;
+  const r = buyBoost(S, R, b.dataset.boost);
+  const label = (THEME.meta.boosts || {})[b.dataset.boost];
+  UI.flash(r.ok ? `${label.zh} ${label.name}!` : r.msg, r.ok ? 'good' : 'bad');
 });
 
 // ---------- walkthrough ----------
