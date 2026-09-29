@@ -403,7 +403,7 @@ function hud(c, run, time){
   c.fillStyle = tk >= run.target ? '#2e9e5b' : '#e39b2d'; rr(c, 760, 16, Math.max(16, 200 * tf), 16, 8); c.fill();
   text(c, `$${tk} / $${run.target}`, 860, 25, `700 12px ${SANS}`, '#fff');
   text(c, 'Cash', 1010, 25, `700 12px ${SANS}`, '#9fb4aa', 'left');
-  text(c, `$${Math.floor(run.cash)}`, 1046, 25, `700 22px ${SLAB}`, run.cash < 0 ? '#ff8a7a' : '#fff', 'left');
+  text(c, `${run.cash < 0 ? '−$' : '$'}${Math.abs(Math.floor(run.cash))}`, 1046, 25, `700 22px ${SLAB}`, run.cash < 0 ? '#ff8a7a' : '#fff', 'left');
 }
 
 function bubble(c, cust, x, t){

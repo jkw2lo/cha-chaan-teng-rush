@@ -48,7 +48,7 @@ body.counter{display:flex; flex-direction:column; height:100vh; background:#0f23
 .phonelist .nm{font-weight:700} .phonelist .nm small{display:block; font-weight:500; color:var(--muted)}
 .phonelist button{border:0; border-radius:8px; padding:6px 10px; background:#3f7fae; color:#fff; font-weight:700; white-space:nowrap}
 .phonelist button.express{background:#e39b2d}
-.phonelist button small{opacity:.85; margin-left:2px}
+.phonelist button small{opacity:.85; margin-left:2px; font-size:11px}
 .phonelist .coming{grid-column:3 / 5; color:#3f7fae; font-weight:700; text-align:right}
 @media (max-width:640px){ .recipes{grid-template-columns:1fr} .phonelist li{grid-template-columns:48px 1fr; } .phonelist .coming{grid-column:1 / -1} }
 
@@ -72,3 +72,9 @@ body.counter{display:flex; flex-direction:column; height:100vh; background:#0f23
 .hist th{font-size:11.5px; text-transform:uppercase; letter-spacing:.05em; color:var(--muted)}
 .hist tr.now td{background:#fff6d9; font-weight:700}
 .hist small{color:var(--muted); font-weight:500}
+
+/* the error bar: shown only if something goes wrong */
+.errbar{position:fixed; left:12px; bottom:12px; z-index:200; display:flex; gap:10px; align-items:center; max-width:calc(100vw - 24px);
+  background:#9e1f19; color:#fff; padding:8px 10px 8px 14px; border-radius:12px; box-shadow:0 8px 24px rgba(0,0,0,.45); font-weight:700; font-size:13.5px}
+.errbar button{border:0; border-radius:8px; padding:6px 12px; font-weight:700; background:#fff; color:#9e1f19}
+.errbar #errClose{background:transparent; color:#fff; font-size:18px; padding:2px 8px}

@@ -36,6 +36,23 @@ function resize(){
 addEventListener('resize', resize);
 const toStage = e => { const r = cv.getBoundingClientRect(); return { x: (e.clientX - r.left) / scale, y: (e.clientY - r.top) / scale }; };
 
+// ---------- errors: a bar with "Copy error details" (the catcher itself lives in index.html) ----------
+const cash = v => (v < 0 ? '−$' : '$') + Math.abs(Math.floor(v));
+const report = (err, where) => { console.error(err); window.counterReport?.(err, where); };
+// what the error report includes about the game
+window.counterState = () => ({ started, paused, phoneOpen, over: run.over, t: +run.t.toFixed(2), cash: run.cash, difficulty: run.cfgLabel,
+  stock: run.stock, deliveries: run.deliveries, apps: run.apps, spots: run.spots,
+  seats: run.seats.map(s => s.cust ? { order: s.cust.order, got: s.cust.got, state: s.cust.state, patience: +s.cust.patience.toFixed(1) } : { dirty: s.dirty }),
+  pendingEvents: run.events.map(e => e.kind) });
+$('errCopy').onclick = async () => {
+  const txt = window.counterErrorText();
+  try { await navigator.clipboard.writeText(txt); }
+  catch (e){ const ta = document.createElement('textarea'); ta.value = txt; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); ta.remove(); }
+  $('errCopy').textContent = 'Copied: paste it to Claude';
+  setTimeout(() => $('errCopy').textContent = 'Copy error details', 2500);
+};
+$('errClose').onclick = () => { $('errbar').hidden = true; };
+
 // ---------- messages ----------
 let toastTimer = 0;
 function say(msg, bad = true){
@@ -69,7 +86,7 @@ function handleEvents(){
       case 'delivery': sfx.delivery(); { const b = L.bins.find(b => b.ing === e.ing) || L.cabinet; float(b.x + b.w / 2, b.y + 20, `+${INGREDIENTS[e.ing].pack}`, '#1d4f7a'); } break;
       case 'closing': say('11:00, closing time. Finish off the customers you have.', false); break;
       case 'over': setTimeout(showSummary, 900); break;
-    } } catch (err) { console.error(err); }
+    } } catch (err) { report(err, `event ${e.kind}`); }
   }
 }
 
@@ -141,22 +158,35 @@ addEventListener('keydown', e => {
 
 // ---------- the phone ----------
 function openPhone(){
-  phoneOpen = true; $('phone').hidden = false; renderPhone();
+  phoneOpen = true; $('phone').hidden = false; phoneSig = ''; renderPhone();
 }
 function closePhone(){ phoneOpen = false; $('phone').hidden = true; }
+// The list is only rebuilt when something on it changes, so a button is never swapped out mid-click.
+let phoneSig = '';
 function renderPhone(){
+  const sig = JSON.stringify([run.stock, run.deliveries.map(d => [d.ing, Math.ceil(d.eta - run.t)]), Math.floor(run.cash)]);
+  if (sig === phoneSig) return;
+  phoneSig = sig;
   $('phoneList').innerHTML = BIN_ORDER.map(ing => {
     const I = INGREDIENTS[ing], coming = run.deliveries.find(d => d.ing === ing), n = run.stock[ing];
     const btn = express => { const cost = S.packPrice(ing, express), secs = express ? DAY.delivery.express : DAY.delivery.normal;
-      return `<button type="button" data-ing="${ing}" data-express="${express ? 1 : ''}" ${coming || run.cash < cost ? 'disabled' : ''} class="${express ? 'express' : ''}">
-        ${express ? 'Express' : 'Normal'} <b>$${cost}</b> <small>${secs}s</small></button>`; };
+      return `<button type="button" data-ing="${ing}" data-express="${express ? 1 : ''}" class="${express ? 'express' : ''}">
+        ${express ? 'Express' : 'Normal'} <b>$${cost}</b> <small>${secs}s${run.cash < cost ? ' · on tab' : ''}</small></button>`; };
     return `<li class="${n <= 2 ? 'low' : ''}"><span class="zh">${I.zh}</span><span class="nm">${I.name}<small>${n} left · +${I.pack} a delivery</small></span>
       ${coming ? `<span class="coming">On its way: ${Math.ceil(coming.eta - run.t)}s</span>` : btn(false) + btn(true)}</li>`;
   }).join('');
-  $('phoneCash').textContent = `$${Math.floor(run.cash)}`;
+  $('phoneCash').textContent = cash(run.cash);
 }
+// act on press (and on Enter/Space via click), so a re-render can't eat the order
+let phonePressed = 0;
+$('phoneList').addEventListener('pointerdown', e => {
+  const b = e.target.closest('button[data-ing]'); if (!b || e.button) return;
+  e.preventDefault(); phonePressed = performance.now();
+  say(S.phoneOrder(run, b.dataset.ing, !!b.dataset.express)); renderPhone();
+});
 $('phoneList').addEventListener('click', e => {
   const b = e.target.closest('button[data-ing]'); if (!b) return;
+  if (performance.now() - phonePressed < 800) return;     // the press already placed it
   say(S.phoneOrder(run, b.dataset.ing, !!b.dataset.express)); renderPhone();
 });
 $('phoneClose').onclick = closePhone;
@@ -280,13 +310,15 @@ function frame(now){
   const dt = Math.min(.25, (now - last) / 1000); last = now;
   ui.t += dt;
   if (playing()){
-    for (let left = dt; left > 1e-6 && !run.over; left -= .05){
-      const step = Math.min(.05, left);
-      S.tick(run, step, SEAT_X);
-      if (ui.pulling){ const err = S.holdPull(run, step); if (err || !run.apps.kettle.part){ ui.pulling = false; stopSizzle(); say(err); } }
-    }
+    try {
+      for (let left = dt; left > 1e-6 && !run.over; left -= .05){
+        const step = Math.min(.05, left);
+        S.tick(run, step, SEAT_X);
+        if (ui.pulling){ const err = S.holdPull(run, step); if (err || !run.apps.kettle.part){ ui.pulling = false; stopSizzle(); say(err); } }
+      }
+    } catch (err) { report(err, 'game tick'); }
     handleEvents();
-    if (phoneOpen && (phoneTick += dt) > .25){ phoneTick = 0; renderPhone(); }
+    if (phoneOpen && (phoneTick += dt) > .25){ phoneTick = 0; try { renderPhone(); } catch (err) { report(err, 'phone'); } }
   }
   for (const f of ui.floats) f.age += dt;
   for (const k of ui.coins) k.age += dt;
@@ -295,7 +327,7 @@ function frame(now){
   ui.flights = ui.flights.filter(f => f.age < FLIGHT);
   ui.floats = ui.floats.filter(f => f.age < 1.6);
   try { drawFrame(c, run, { ...ui, paused: paused && $('card').hidden, flashBin: null }); }
-  catch (err) { console.error(err); }
+  catch (err) { report(err, 'drawing'); }
 }
 
 resize();

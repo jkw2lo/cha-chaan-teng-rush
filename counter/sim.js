@@ -174,7 +174,7 @@ export function clearSeat(run, seat){
 export const packPrice = (ing, express) => Math.round(INGREDIENTS[ing].unit * INGREDIENTS[ing].pack * (express ? DAY.expressMult : 1));
 export function phoneOrder(run, ing, express){
   const cost = packPrice(ing, express);
-  if (run.cash < cost) return `Not enough cash: that's $${cost}.`;
+  // short of cash, the supplier puts it on your tab (賒數): cash goes negative rather than leaving you stuck with empty bins
   if (run.deliveries.some(d => d.ing === ing)) return `${INGREDIENTS[ing].name} is already on its way.`;
   run.cash -= cost; run.stockSpent += cost;
   run.deliveries.push({ ing, eta: run.t + (express ? DAY.delivery.express : DAY.delivery.normal), total: express ? DAY.delivery.express : DAY.delivery.normal, express });

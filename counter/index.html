@@ -8,8 +8,37 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Karla:wght@400;500;700&family=Noto+Serif+TC:wght@700;900&family=Zilla+Slab:wght@600;700&display=swap">
-<link rel="stylesheet" href="../css/style.css?v=mun4a5qf">
-<link rel="stylesheet" href="counter.css?v=mun4a5qf">
+<link rel="stylesheet" href="../css/style.css?v=mun4dg4r">
+<link rel="stylesheet" href="counter.css?v=mun4dg4r">
+<script>
+  // Error catcher, loaded before the game so it sees everything (even a file that fails to load).
+  // Anything that goes wrong shows a bar with a button that copies the details plus a snapshot of the game.
+  (function(){
+    var errs = [];
+    function show(){
+      var bar = document.getElementById('errbar');
+      if (!bar) return;
+      bar.hidden = false;
+      document.getElementById('errcount').textContent = errs.length > 1 ? ' (' + errs.length + ')' : '';
+    }
+    window.counterReport = function(err, where){
+      var e = err || {};
+      errs.push({ at: new Date().toISOString(), where: where || '', message: String(e.message || e), stack: String(e.stack || '') });
+      if (errs.length > 20) errs.shift();
+      show();
+    };
+    window.addEventListener('error', function(ev){ window.counterReport(ev.error || { message: ev.message + ' at ' + ev.filename + ':' + ev.lineno + ':' + ev.colno }, 'window'); });
+    window.addEventListener('unhandledrejection', function(ev){ window.counterReport(ev.reason, 'promise'); });
+    window.counterErrorText = function(){
+      var state = '';
+      try { state = window.counterState ? JSON.stringify(window.counterState(), null, 1) : '(game not loaded)'; } catch (e) { state = '(could not read the game: ' + e.message + ')'; }
+      return ['Counter Rush error report', 'Page: ' + location.href, 'When: ' + new Date().toString(), 'Browser: ' + navigator.userAgent, '',
+        errs.map(function(e, i){ return '#' + (i + 1) + ' [' + e.at + '] ' + e.where + ': ' + e.message + '\n' + e.stack; }).join('\n\n'), '', 'Game state:', state].join('\n');
+    };
+    window.counterErrors = errs;
+    document.addEventListener('DOMContentLoaded', function(){ if (errs.length) show(); });
+  })();
+</script>
 </head>
 <body class="counter">
 <header class="cbar">
@@ -26,6 +55,12 @@
   <div id="toast" class="ctoast" role="status" hidden></div>
 </main>
 
+<div id="errbar" class="errbar" role="alert" hidden>
+  <span>⚠ Something went wrong<span id="errcount"></span>. The game tries to keep going.</span>
+  <button id="errCopy" type="button">Copy error details</button>
+  <button id="errClose" type="button" aria-label="Hide">×</button>
+</div>
+
 <div id="phone" class="cmodal" hidden>
   <div class="ccard phonecard" role="dialog" aria-modal="true" aria-labelledby="phoneHead">
     <h2 id="phoneHead"><span class="zh">入貨</span>Phone the supplier <span class="cash">Cash <b id="phoneCash"></b></span></h2>
@@ -36,6 +71,6 @@
 </div>
 <div id="card" class="cmodal" hidden><div class="ccard" id="cardBody" role="dialog" aria-modal="true"></div></div>
 
-<script type="module" src="main.js?v=mun4a5qf"></script>
+<script type="module" src="main.js?v=mun4dg4r"></script>
 </body>
 </html>
