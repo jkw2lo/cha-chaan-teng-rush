@@ -116,6 +116,18 @@ export const DECOR = {
   lightbox:     { style: 'modern', kind: 'wall',    name: 'Lightbox menu',       zh: '燈箱餐牌', price: 220, appeal: 12 },
   terrazzo:     { style: 'modern', kind: 'floor',   name: 'Terrazzo',            zh: '水磨石', price: 500, appeal: 28 },
 
+  // more for each style
+  fluoroTube:   { style: 'old',    kind: 'ceiling', name: 'Fluorescent tube',    zh: '光管',   price: 50,  appeal: 4 },
+  shrine:       { style: 'old',    kind: 'wall',    name: 'Wall shrine',         zh: '神枱',   price: 160, appeal: 10 },
+  newsRack:     { style: 'old',    kind: 'block',   name: 'Newspaper rack',      zh: '報紙架', price: 90,  appeal: 6 },
+  checker:      { style: 'old',    kind: 'floor',   name: 'Checkerboard tiles',  zh: '黑白格仔地', price: 350, appeal: 22 },
+  wallFan:      { style: 'simple', kind: 'wall',    name: 'Wall fan',            zh: '牆扇',   price: 60,  appeal: 4 },
+  aircon:       { style: 'simple', kind: 'wall',    name: 'Window air-con',      zh: '窗口冷氣機', price: 200, appeal: 9 },
+  sodaCrates:   { style: 'simple', kind: 'block',   name: 'Crates of soda',      zh: '汽水箱', price: 70,  appeal: 5 },
+  retroPoster:  { style: 'modern', kind: 'wall',    name: 'Retro film poster',   zh: '懷舊海報', price: 130, appeal: 9 },
+  hangingPlants:{ style: 'modern', kind: 'ceiling', name: 'Hanging plants',      zh: '吊盆',   price: 110, appeal: 8 },
+  hexTiles:     { style: 'modern', kind: 'floor',   name: 'Hexagon tiles',       zh: '六角磚', price: 420, appeal: 25 },
+
   // premium pieces: open up at higher levels
   dragonMural:  { style: 'old',    kind: 'wall',    name: 'Dragon & phoenix mural', zh: '龍鳳壁畫', price: 600,  appeal: 22, level: 6 },
   rosewoodCab:  { style: 'old',    kind: 'block',   name: 'Rosewood display cabinet', zh: '酸枝櫃', price: 800, appeal: 26, level: 8 },

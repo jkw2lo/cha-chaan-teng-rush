@@ -113,7 +113,7 @@ Rearranging only happens between days: before you open, or from the end-of-day s
 
 Copy `themes/dimsum` to `themes/<id>`, change its `index.js`, `data.js` and `art.js` (anything you don't draw can fall through to another theme's art), add the id to `GAMES` in `js/main.js`, `js/ui.js` and `tools/pages.mjs`, run `node tools/pages.mjs`, and add a card to `index.html`.
 
-Besides `icon`, `floor`, `station`, `decor`, `ceiling` and `wallItem`, a theme's `art.js` can optionally export these to restyle the shared room (Dim Sum uses all of them; the cha chaan teng uses none):
+Besides `icon`, `floor`, `station`, `decor`, `ceiling` and `wallItem`, a theme's `art.js` can optionally export these to restyle the shared room (Dim Sum uses all of them; the cha chaan teng uses `wallFace`, `windowFrame`, `sign`, `room`, `partition` and `serve`):
 
 - `wallSegment(iso, pts, kitchen)`: draw one wall strip; return `true` to replace the default.
 - `wallFace(face, x, y, iso)`: panelling on each dining-wall cell.

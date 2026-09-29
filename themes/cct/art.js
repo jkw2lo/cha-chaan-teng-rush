@@ -1,14 +1,14 @@
 // Cha chaan teng art: dish icons, stations, furniture, lamps and wall pieces.
 // Shared drawing (people, walls, light, helpers) lives in js/art.js.
 import { shade } from '../../js/iso.js';
-import { APPLIANCES, DECOR } from '../../js/data.js';
-import { WALL_H } from '../../js/world.js';
+import { APPLIANCES, DECOR, MENU, THEME } from '../../js/data.js';
+import { WALL_H, PARTITION_H, DH, DIRS } from '../../js/world.js';
 import { TAU, HAN, HAN_SANS, hash, PAL, counter, label, steam, legs, backRect, iconCanvas } from '../../js/art.js';
 
 // seats with a backrest (drawn in two parts so customers sit between them)
 export const backs = ['boothSeat', 'crossChair', 'metalChair', 'rattanChair', 'timberBench'];
 // ceiling pieces that throw a pool of light on the floor
-export const lamps = ['pendant', 'globeLamp', 'ceilingFan', 'chandelier'];
+export const lamps = ['pendant', 'globeLamp', 'ceilingFan', 'chandelier', 'fluoroTube'];
 
 // ---------------- menu icons (screen space) ----------------
 function bunDome(c, cx, cy, rx, ry){
@@ -151,30 +151,56 @@ function bowl(c, cx, cy, r, fill){
 // ---------------- floors ----------------
 const MOSAIC = ['..g.', '.gyg', '..g.', '....'];
 export function floor(iso, type, x, y){
+  const cell = [[x, y, 0], [x + 1, y, 0], [x + 1, y + 1, 0], [x, y + 1, 0]];
   if (type === 'whiteTiles'){
     for (let i = 0; i < 2; i++) for (let j = 0; j < 2; j++){
       const a = x + i / 2, b = y + j / 2, v = .97 + hash(x * 2 + i, y * 2 + j) * .05;
-      iso.poly([[a, b, 0], [a + .5, b, 0], [a + .5, b + .5, 0], [a, b + .5, 0]], shade('#f1efe9', v), '#c4bdb0');
-      iso.poly([[a + .05, b + .05, 0], [a + .28, b + .05, 0], [a + .05, b + .28, 0]], 'rgba(255,255,255,.35)');
+      iso.poly([[a, b, 0], [a + .5, b, 0], [a + .5, b + .5, 0], [a, b + .5, 0]], shade('#f1efe9', v), '#b9b2a4');
+      iso.poly([[a + .05, b + .05, 0], [a + .28, b + .05, 0], [a + .05, b + .28, 0]], 'rgba(255,255,255,.4)');
+      if (hash(x * 2 + i, y * 2 + j, 7) > .85) iso.ell(a + .3, b + .3, .001, .04, 'rgba(120,100,70,.08)');   // an old tea stain
     }
   } else if (type === 'mosaic'){
     for (let i = 0; i < 4; i++) for (let j = 0; j < 4; j++){
       const gx = x * 4 + i, gy = y * 4 + j, m = MOSAIC[(gy % 4 + 4) % 4][(gx % 4 + 4) % 4];
-      const col = m === 'g' ? '#4f917a' : m === 'y' ? '#d9b44a' : ((gx + gy) % 2 ? '#eef0e6' : '#e6e9dd');
+      const col = m === 'g' ? '#4f917a' : m === 'y' ? '#d9b44a' : shade((gx + gy) % 2 ? '#eef0e6' : '#e6e9dd', .97 + hash(gx, gy) * .05);
       const a = x + i / 4, b = y + j / 4;
-      iso.poly([[a, b, 0], [a + .25, b, 0], [a + .25, b + .25, 0], [a, b + .25, 0]], col, 'rgba(120,120,110,.25)');
+      iso.poly([[a + .01, b + .01, 0], [a + .24, b + .01, 0], [a + .24, b + .24, 0], [a + .01, b + .24, 0]], col);
     }
+    iso.poly(cell, null, 'rgba(120,120,110,.3)', 1);
   } else if (type === 'terrazzo'){
-    iso.poly([[x, y, 0], [x + 1, y, 0], [x + 1, y + 1, 0], [x, y + 1, 0]], '#e2ded5', 'rgba(150,140,130,.25)');
+    iso.poly(cell, '#e2ded5', 'rgba(150,140,130,.25)');
     const cols = ['#9aa39c', '#c96f4f', '#6f7f8f', '#d9b56f', '#ffffff'];
-    for (let k = 0; k < 14; k++){
+    for (let k = 0; k < 18; k++){
       const px = x + .06 + hash(x, y, k) * .88, py = y + .06 + hash(y, x, k + 9) * .88;
       iso.ell(px, py, 0, .012 + hash(x, k, y) * .025, cols[k % cols.length]);
     }
+    iso.poly([[x + .1, y, .001], [x + .3, y, .001], [x + .1, y + 1, .001], [x - .1, y + 1, .001]].map(([a, b, z]) => [Math.max(x, a), b, z]), 'rgba(255,255,255,.1)');
+  } else if (type === 'checker'){
+    // black and white tiles on the diagonal, the old diner floor
+    for (let i = 0; i < 2; i++) for (let j = 0; j < 2; j++){
+      const a = x + i / 2, b = y + j / 2, dark = (x * 2 + i + y * 2 + j) % 2;
+      iso.poly([[a, b, 0], [a + .5, b, 0], [a + .5, b + .5, 0], [a, b + .5, 0]], dark ? shade('#26282a', .95 + hash(x + i, y + j) * .1) : shade('#f2efe6', .97 + hash(x + i, y + j) * .04), 'rgba(90,90,85,.35)');
+      iso.poly([[a + .05, b + .05, .001], [a + .25, b + .05, .001], [a + .05, b + .25, .001]], dark ? 'rgba(255,255,255,.07)' : 'rgba(255,255,255,.35)');
+    }
+  } else if (type === 'hexTiles'){
+    // matte sage hexagons with the odd darker one
+    iso.poly(cell, '#c9d3c6');
+    const g = iso.ctx; g.save(); iso.path(cell); g.clip();
+    const R = .17, w = R * Math.sqrt(3);
+    for (let row = -1; row < 5; row++) for (let col = -1; col < 5; col++){
+      const cx = x + col * w + (row % 2 ? w / 2 : 0), cy = y + row * R * 1.5, pts = [];
+      for (let k = 0; k < 6; k++){ const a = Math.PI / 6 + k * Math.PI / 3; pts.push([cx + Math.cos(a) * R * .96, cy + Math.sin(a) * R * .96, 0]); }
+      const pick = hash(Math.round((cx) * 10), Math.round(cy * 10), 5);
+      iso.poly(pts, pick > .88 ? '#6f8f7a' : shade('#c9d3c6', .96 + pick * .08), 'rgba(90,100,90,.35)');
+    }
+    g.restore();
   } else {
+    // bare concrete: trowel marks, a few stains
     const v = .95 + hash(x, y) * .08;
-    iso.poly([[x, y, 0], [x + 1, y, 0], [x + 1, y + 1, 0], [x, y + 1, 0]], shade('#bdb6a8', v), 'rgba(90,85,75,.25)');
+    iso.poly(cell, shade('#bdb6a8', v), 'rgba(90,85,75,.25)');
     for (let k = 0; k < 6; k++) iso.ell(x + .1 + hash(x, y, k) * .8, y + .1 + hash(y, x, k + 3) * .8, 0, .01 + hash(k, x, y) * .015, `rgba(${k % 2 ? '255,255,255' : '60,55,48'},.18)`);
+    if (hash(x, y, 11) > .7) iso.ell(x + .5, y + .5, .001, .12 + hash(x, y, 12) * .1, 'rgba(70,60,45,.07)');
+    iso.poly([[x + .15, y + .3, .001], [x + .7, y + .22, .001]], null, 'rgba(255,255,255,.1)', 1);
   }
 }
 
@@ -373,17 +399,21 @@ export function station(iso, st, t, busy){
       break;
     }
     case 'shelf': {
-      iso.box(x + .06, y + .1, x + .94, y + .9, 0, 1.75, ap.color, { material: 'wood' });
-      const face = st.dir === 'E' ? 'E' : 'S';
-      for (const f of ['S', 'E']) iso.onFace(f, x, y, cc => {
-        cc.fillStyle = shade(ap.color, .6);
-        for (const v of [-40, -85, -130]) cc.fillRect(8, v, 84, 5);
-        if (f === face){
-          for (let i = 0; i < 5; i++){ cc.fillStyle = i % 2 ? '#1f1f1f' : '#f4f4f0'; cc.fillRect(12 + i * 15, -80, 11, 18); cc.fillStyle = '#c8372d'; cc.fillRect(12 + i * 15, -73, 11, 3); }
-          for (let i = 0; i < 4; i++){ cc.fillStyle = ['#b3261e', '#2f6f5e', '#b3261e', '#e0b23c'][i]; cc.fillRect(14 + i * 19, -125, 14, 20); }
-          cc.fillStyle = '#d9c29a'; cc.fillRect(12, -35, 34, 26); cc.fillRect(52, -32, 34, 23);
-        }
-      });
+      // a steel rack of the staples: evaporated milk, condensed milk, luncheon meat, loaves, tea
+      for (const [px, py] of [[.1, .12], [.9, .12], [.1, .88], [.9, .88]]) iso.box(x + px - .02, y + py - .02, x + px + .02, y + py + .02, 0, 1.72, '#9aa3ab', { edge: false });
+      for (const z of [.08, .62, 1.14, 1.66]) iso.box(x + .08, y + .1, x + .92, y + .9, z, z + .03, '#c3cad0', { material: 'steel' });
+      for (const [dx, col] of [[.28, '#e9d9b0'], [.68, '#e2cc9a']]){                        // sacks of tea
+        iso.box(x + dx - .16, y + .28, x + dx + .16, y + .72, .11, .48, col, { topCol: shade(col, 1.05) });
+        iso.onFace('S', x + dx - .16, y + .72 - 1, cc => { cc.fillStyle = '#2f6f5e'; cc.font = `900 10px ${HAN}`; cc.textAlign = 'center'; cc.fillText('茶葉', 16, -24); });
+      }
+      for (let i = 0; i < 4; i++) for (let j = 0; j < 2; j++){                                 // 黑白淡奶 and condensed milk tins
+        const cx = x + .2 + i * .18, cy = y + .34 + j * .3, milk = (i + j) % 2;
+        iso.cyl(cx, cy, .06, .65, .82, milk ? '#1f1f1f' : '#f4f1ea', '#c9cfd4');
+        iso.cyl(cx, cy, .062, .7, .74, milk ? '#f4f1ea' : '#c8372d');
+      }
+      for (let i = 0; i < 3; i++) iso.box(x + .16 + i * .24, y + .3, x + .34 + i * .24, y + .52, 1.17, 1.27, '#2d6fb8', { topCol: '#e8b030' });   // luncheon meat
+      for (const dy of [.58, .7]) iso.box(x + .18, y + dy, x + .82, y + dy + .1, 1.17, 1.3, '#e0b070', { topCol: '#c98a3a' });                    // loaves
+      for (const [dx, col] of [[.3, '#f1ece0'], [.68, '#d9c29a']]) iso.box(x + dx - .15, y + .3, x + dx + .15, y + .7, 1.69, 1.86, col, { topCol: shade(col, 1.05) });
       break;
     }
   }
@@ -391,19 +421,35 @@ export function station(iso, st, t, busy){
 
 
 // ---------------- furniture ----------------
+// Every table gets the caddy: sugar jar, soy, chilli, toothpicks and a napkin holder.
+function caddy(iso, x, y, z){
+  iso.box(x - .12, y - .07, x + .12, y + .07, z, z + .02, '#b9c0c7', { edge: false });
+  iso.cyl(x - .07, y, .04, z + .02, z + .13, 'rgba(235,240,240,.75)', '#f6f4ee');           // sugar
+  iso.cyl(x - .07, y, .042, z + .13, z + .15, '#b9c0c7');
+  iso.cyl(x + .01, y - .02, .022, z + .02, z + .15, '#3a2418', '#c8372d');                  // soy
+  iso.cyl(x + .06, y + .02, .022, z + .02, z + .13, '#c8372d', '#f4f1ea');                  // chilli
+  iso.cyl(x + .1, y - .03, .015, z + .02, z + .1, '#e9dcc0');                               // toothpicks
+}
 export function decor(iso, it, t, part){
   const { x, y } = it, doBase = part !== 'back', doBack = part !== 'base';
   switch (it.type){
     case 'formicaTable':
       if (!doBase) return;
+      // green laminate with a ribbed chrome edge on a single pedestal
       iso.ell(x + .5, y + .5, 0, .2, '#7d868d');
-      iso.cyl(x + .5, y + .5, .045, 0, .7, '#b9c0c7');
-      iso.box(x + .08, y + .08, x + .92, y + .92, .7, .77, '#dcebdc', { leftCol: '#9aa5a0', rightCol: '#848f8a' });
+      iso.cyl(x + .5, y + .5, .045, 0, .68, '#d7dde2');
+      iso.box(x + .06, y + .06, x + .94, y + .94, .68, .74, '#c9cfd4', { material: 'steel' });
+      iso.box(x + .08, y + .08, x + .92, y + .92, .74, .76, '#bfe0c8', { topCol: '#cfe8d4', edge: false });
+      iso.poly([[x + .14, y + .12, .761], [x + .5, y + .12, .761], [x + .14, y + .48, .761]], 'rgba(255,255,255,.18)');   // glass sheen
+      iso.poly([[x + .54, y + .56, .761], [x + .86, y + .56, .761], [x + .86, y + .86, .761], [x + .54, y + .86, .761]], 'rgba(255,250,235,.9)', 'rgba(160,150,130,.6)');   // a menu under the glass
+      caddy(iso, x + .32, y + .3, .76);
       break;
     case 'foldTable':
       if (!doBase) return;
       legs(iso, x, y, .16, .7, '#5d5d5d');
       iso.box(x + .08, y + .08, x + .92, y + .92, .7, .75, '#d6bf94', { material: 'wood' });
+      iso.box(x + .6, y + .2, x + .82, y + .34, .75, .83, '#f4f1ea', { topCol: '#fbfaf5' });   // a box of tissues
+      iso.cyl(x + .25, y + .3, .05, .75, .95, '#c9cfd4', '#3a3a3a');                          // chopstick tube
       break;
     case 'marbleTable': {
       if (!doBase) return;
@@ -413,6 +459,7 @@ export function decor(iso, it, t, part){
       const c = iso.ctx; c.strokeStyle = 'rgba(140,140,145,.55)'; c.lineWidth = 1;
       const [a1, b1] = iso.P(x + .25, y + .4, .77), [a2, b2] = iso.P(x + .55, y + .55, .77), [a3, b3] = iso.P(x + .75, y + .72, .77);
       c.beginPath(); c.moveTo(a1, b1); c.quadraticCurveTo(a2, b2 - 4, a3, b3); c.stroke();
+      if (THEME.id === 'cct') caddy(iso, x + .36, y + .34, .77);
       break;
     }
     case 'redStool':
@@ -432,10 +479,27 @@ export function decor(iso, it, t, part){
       if (doBase){ legs(iso, x, y, .24, .38, '#8a6a3a'); iso.box(x + .16, y + .16, x + .84, y + .84, .38, .46, '#d7b27a'); }
       if (doBack){ const [a, b, c2, d] = backRect(it, x, y, .08); iso.box(a, b, c2, d, .46, 1.02, '#c9a26b', { leftCol: '#b88d55', rightCol: '#a57c47' }); }
       break;
-    case 'boothSeat':
-      if (doBase) iso.box(x + .06, y + .06, x + .94, y + .94, 0, .42, '#2f7a64', { topCol: '#3b8f76' });
-      if (doBack){ const [a, b, c2, d] = backRect(it, x, y, .22); iso.box(a - (it.dir === 'E' ? .02 : 0), b, c2, d, 0, 1.0, '#2a6b58', { topCol: '#347d67' }); }
+    case 'boothSeat': {
+      // green vinyl, piped in chrome, the back buttoned into squares
+      if (doBase){
+        iso.box(x + .06, y + .06, x + .94, y + .94, 0, .1, '#2b2f2c');
+        iso.box(x + .06, y + .06, x + .94, y + .94, .1, .42, '#2f7a64', { topCol: '#3b8f76' });
+        iso.box(x + .05, y + .05, x + .95, y + .95, .41, .43, '#d7dde2', { edge: false });
+      }
+      if (doBack){
+        const [a, b, c2, d] = backRect(it, x, y, .22), ax = a - (it.dir === 'E' ? .02 : 0);
+        iso.box(ax, b, c2, d, .1, 1.02, '#2a6b58', { topCol: '#347d67' });
+        iso.box(ax - .005, b - .005, c2 + .005, d + .005, 1.0, 1.04, '#d7dde2', { edge: false });
+        const along = it.dir === 'E' || it.dir === 'W', c = iso.ctx;
+        c.strokeStyle = 'rgba(15,45,35,.45)'; c.lineWidth = 1;
+        for (let i = 1; i < 4; i++){
+          const f = i / 4, [p, q] = iso.P(along ? (ax + c2) / 2 : ax + (c2 - ax) * f, along ? b + (d - b) * f : (b + d) / 2, .5), [p2, q2] = iso.P(along ? (ax + c2) / 2 : ax + (c2 - ax) * f, along ? b + (d - b) * f : (b + d) / 2, .95);
+          c.beginPath(); c.moveTo(p, q); c.lineTo(p2, q2); c.stroke();
+        }
+        for (const z of [.72]){ const [p, q] = iso.P(along ? (ax + c2) / 2 : ax, along ? b : (b + d) / 2, z), [p2, q2] = iso.P(along ? (ax + c2) / 2 : c2, along ? d : (b + d) / 2, z); c.beginPath(); c.moveTo(p, q); c.lineTo(p2, q2); c.stroke(); }
+      }
       break;
+    }
     case 'chromeStool':
       if (!doBase) return;
       iso.ell(x + .5, y + .5, 0, .15, '#9aa3ab');
@@ -501,13 +565,47 @@ export function decor(iso, it, t, part){
       iso.cyl(x + .45, y + .5, .06, 1.36, 1.46, '#c7793f');
       iso.cyl(x + .72, y + .78, .06, .96, 1.04, '#ffffff', '#5a3620');
       break;
-    case 'cashier':
+    case 'cashier': {
+      // wood counter, a glass case of sweets, the till and a lucky cat
       iso.box(x + .06, y + .1, x + .94, y + .9, 0, .9, '#6d4a31', { material: 'wood' });
       iso.box(x + .06, y + .1, x + .94, y + .9, .9, 1.02, 'rgba(200,230,240,.35)', { leftCol: 'rgba(200,230,240,.4)', rightCol: 'rgba(170,210,225,.4)', edge: 'rgba(255,255,255,.7)', material: 'glass' });
-      iso.box(x + .3, y + .3, x + .7, y + .65, 1.02, 1.28, '#5a6168');
-      iso.box(x + .36, y + .32, x + .64, y + .42, 1.28, 1.36, '#2d3136');
-      iso.onFace('S', x, y, c => { c.fillStyle = '#c8372d'; c.fillRect(20, -80, 60, 12); });
+      iso.onFace('S', x, y - .1, c => { const cols = ['#e8b030', '#c8372d', '#3f8f6b', '#f4f1ea', '#e07a5f']; for (let i = 0; i < 10; i++){ c.fillStyle = cols[i % 5]; c.beginPath(); c.arc(14 + i * 8, -80 - (i % 2) * 4, 3.4, 0, TAU); c.fill(); } c.fillStyle = '#c8372d'; c.fillRect(20, -52, 60, 12); c.fillStyle = '#fff'; c.font = `900 9px ${HAN_SANS}`; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText('收銀', 50, -46); });
+      iso.box(x + .28, y + .3, x + .64, y + .64, 1.02, 1.24, '#4a5158');
+      iso.box(x + .34, y + .3, x + .6, y + .4, 1.24, 1.36, '#2d3136');
+      iso.box(x + .36, y + .5, x + .58, y + .62, 1.24, 1.26, '#c9cfd4', { edge: false });
+      const c = iso.ctx, [p, q] = iso.P(x + .78, y + .7, 1.02), k = iso.s;             // 招財貓, waving
+      c.fillStyle = '#fbfaf5'; c.strokeStyle = 'rgba(0,0,0,.35)'; c.lineWidth = 1;
+      c.beginPath(); c.ellipse(p, q - k * .1, k * .07, k * .09, 0, 0, TAU); c.fill(); c.stroke();
+      c.beginPath(); c.arc(p, q - k * .23, k * .065, 0, TAU); c.fill(); c.stroke();
+      const wave = Math.sin(t * 4) * k * .02;
+      c.beginPath(); c.ellipse(p + k * .07, q - k * .27 + wave, k * .022, k * .04, 0, 0, TAU); c.fill(); c.stroke();
+      c.fillStyle = '#c8372d'; c.fillRect(p - k * .05, q - k * .18, k * .1, k * .015);
+      c.fillStyle = '#e8b030'; c.beginPath(); c.arc(p, q - k * .15, k * .015, 0, TAU); c.fill();
       break;
+    }
+    case 'newsRack': {
+      iso.box(x + .2, y + .3, x + .8, y + .7, 0, .05, '#6f787f');
+      for (const z of [.35, .75, 1.15]){
+        iso.box(x + .22, y + .34, x + .78, y + .46, z - .3, z, '#aeb6bd', { material: 'steel' });
+        iso.onFace('S', x + .22, y + .46 - 1, c => {
+          const v = -z * 100 + 2, papers = [['#f1ece0', '東方'], ['#fbfaf5', '明報'], ['#f4e6c8', '馬經']];
+          papers.forEach(([col, name], i) => { c.fillStyle = col; c.fillRect(3 + i * 18, v, 16, 26); c.fillStyle = i === 2 ? '#2d6fb8' : '#c8372d'; c.font = `900 6px ${HAN}`; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText(name, 11 + i * 18, v + 5); c.fillStyle = 'rgba(0,0,0,.25)'; for (let r = 0; r < 4; r++) c.fillRect(5 + i * 18, v + 10 + r * 3.5, 12, 1.2); });
+        });
+      }
+      break;
+    }
+    case 'sodaCrates': {
+      // stacked plastic crates of glass bottles
+      const crate = (x0, y0, z0, col, glass) => {
+        iso.box(x0, y0, x0 + .36, y0 + .3, z0, z0 + .22, col, { topCol: shade(col, 1.1) });
+        for (let i = 0; i < 3; i++) for (let j = 0; j < 2; j++) iso.cyl(x0 + .07 + i * .11, y0 + .08 + j * .13, .035, z0 + .22, z0 + .34, glass, '#d9d4c7');
+      };
+      crate(x + .1, y + .15, 0, '#c8372d', 'rgba(120,70,30,.85)');
+      crate(x + .52, y + .15, 0, '#e8b030', 'rgba(60,140,70,.85)');
+      crate(x + .1, y + .55, 0, '#2d6fb8', 'rgba(230,110,40,.85)');
+      crate(x + .12, y + .16, .23, '#e8b030', 'rgba(60,140,70,.85)');
+      break;
+    }
     case 'luckyBamboo': {
       iso.cyl(x + .5, y + .5, .16, 0, .32, '#e8eef2', '#3f6f8f');
       const c = iso.ctx; c.lineWidth = Math.max(2, iso.s * .05); c.strokeStyle = '#5d9b4a';
@@ -534,6 +632,30 @@ export function decor(iso, it, t, part){
 
 export function ceiling(iso, it, t){
   const { x, y } = it, c = iso.ctx, cx = x + .5, cy = y + .5;
+  if (it.type === 'fluoroTube'){
+    // a bare tube in a white batten, hung on two chains
+    const z = 2.15, [p0, q0] = iso.P(x + .15, cy, z), [p1, q1] = iso.P(x + .85, cy, z);
+    for (const [p, q] of [[p0, q0], [p1, q1]]){ const [pa, qa] = [p, q - iso.s * .25]; c.strokeStyle = '#666'; c.lineWidth = 1; c.beginPath(); c.moveTo(pa, qa); c.lineTo(p, q); c.stroke(); }
+    const g = c.createRadialGradient((p0 + p1) / 2, (q0 + q1) / 2 + iso.s * .3, 1, (p0 + p1) / 2, (q0 + q1) / 2 + iso.s * .3, iso.s * 1.1);
+    g.addColorStop(0, 'rgba(225,245,255,.35)'); g.addColorStop(1, 'rgba(225,245,255,0)'); c.fillStyle = g; c.beginPath(); c.arc((p0 + p1) / 2, (q0 + q1) / 2 + iso.s * .3, iso.s * 1.1, 0, TAU); c.fill();
+    c.lineCap = 'round'; c.strokeStyle = '#d9dcd8'; c.lineWidth = Math.max(4, iso.s * .1); c.beginPath(); c.moveTo(p0, q0); c.lineTo(p1, q1); c.stroke();
+    c.strokeStyle = '#fbfffe'; c.lineWidth = Math.max(2, iso.s * .05); c.shadowColor = 'rgba(220,245,255,.9)'; c.shadowBlur = 8; c.beginPath(); c.moveTo(p0, q0 + 2); c.lineTo(p1, q1 + 2); c.stroke(); c.shadowBlur = 0; c.lineCap = 'butt';
+    return;
+  }
+  if (it.type === 'hangingPlants'){
+    for (const [dx, dy, z] of [[-.2, -.1, 1.8], [.18, .12, 1.95]]){
+      const [p, q] = iso.P(cx + dx, cy + dy, z), [p0, q0] = iso.P(cx + dx, cy + dy, WALL_H + .3), k = iso.s;
+      c.strokeStyle = '#c9a26b'; c.lineWidth = 1; for (const s2 of [-1, 0, 1]){ c.beginPath(); c.moveTo(p0, q0); c.lineTo(p + s2 * k * .1, q - k * .05); c.stroke(); }
+      c.fillStyle = '#c96f4f'; c.beginPath(); c.moveTo(p - k * .12, q - k * .06); c.lineTo(p + k * .12, q - k * .06); c.lineTo(p + k * .08, q + k * .08); c.lineTo(p - k * .08, q + k * .08); c.closePath(); c.fill();
+      for (let i = 0; i < 7; i++){                                             // trailing leaves
+        const lx = p + (i - 3) * k * .035, len = k * (.15 + (i % 3) * .1);
+        c.strokeStyle = '#3f7d45'; c.lineWidth = 1.2; c.beginPath(); c.moveTo(lx, q - k * .04); c.quadraticCurveTo(lx + Math.sin(t + i) * 3, q + len * .5, lx + (i - 3) * 2, q + len); c.stroke();
+        c.fillStyle = i % 2 ? '#57a05c' : '#6fb35a'; c.beginPath(); c.ellipse(lx + (i - 3) * 2, q + len, k * .03, k * .018, .5, 0, TAU); c.fill();
+      }
+      c.fillStyle = '#4f914f'; c.beginPath(); c.ellipse(p, q - k * .07, k * .13, k * .05, 0, 0, TAU); c.fill();
+    }
+    return;
+  }
   if (it.type === 'ceilingFan'){
     const [ta, tb] = iso.P(cx, cy, WALL_H + .3), [ha, hb] = iso.P(cx, cy, 2.05);
     c.strokeStyle = '#3b3b3b'; c.lineWidth = 2; c.beginPath(); c.moveTo(ta, tb); c.lineTo(ha, hb); c.stroke();
@@ -592,7 +714,48 @@ export function ceiling(iso, it, t){
 
 export function wallItem(c, w, t, hour, day){
     c.textAlign = 'center'; c.textBaseline = 'middle';
-    if (w.type === 'menuStrips'){
+    if (w.type === 'shrine'){
+      // 神枱: a red shelf for the earth god, red lamps, oranges and incense
+      c.fillStyle = '#8f1a14'; c.fillRect(18, -190, 64, 60);
+      c.fillStyle = '#b3261e'; c.fillRect(22, -186, 56, 50);
+      c.fillStyle = '#e8c35a'; c.font = `900 9px ${HAN}`; ['門口', '土地'].forEach((wd, i) => c.fillText(wd, 50, -174 + i * 11));
+      c.fillStyle = '#6b1410'; c.fillRect(12, -132, 76, 8);
+      for (const u of [26, 74]){ c.fillStyle = '#ff5a3a'; c.shadowColor = '#ff5a3a'; c.shadowBlur = 8; c.beginPath(); c.ellipse(u, -146, 5, 7, 0, 0, TAU); c.fill(); c.shadowBlur = 0; c.fillStyle = '#e8c35a'; c.fillRect(u - 3, -140, 6, 3); }
+      for (const u of [40, 48]){ c.fillStyle = '#f08a2a'; c.beginPath(); c.arc(u, -136, 4, 0, TAU); c.fill(); }
+      c.fillStyle = '#c9a227'; c.fillRect(56, -138, 10, 6);
+      c.strokeStyle = '#8a5a30'; c.lineWidth = 1; for (const u of [59, 61, 63]){ c.beginPath(); c.moveTo(u, -138); c.lineTo(u, -152); c.stroke(); }
+      const ph = (t * .4) % 1; c.strokeStyle = `rgba(200,200,200,${(.6 * (1 - ph)).toFixed(2)})`; c.beginPath(); c.moveTo(61, -152); c.quadraticCurveTo(58, -160 - ph * 10, 62, -168 - ph * 14); c.stroke();
+    } else if (w.type === 'wallFan'){
+      // an oscillating wall fan: cage, blur of blades, the head swinging slowly
+      const swing = Math.sin(t * .8) * 10;
+      c.fillStyle = '#e4ddcb'; c.fillRect(44, -160, 12, 16); c.fillRect(46, -148, 8, 10);
+      c.save(); c.translate(50 + swing * .4, -170); c.scale(Math.cos(swing / 40), 1);
+      c.fillStyle = 'rgba(210,225,230,.5)'; c.beginPath(); c.arc(0, 0, 22, 0, TAU); c.fill();
+      c.strokeStyle = '#c9cfd4'; c.lineWidth = 1.5; c.beginPath(); c.arc(0, 0, 22, 0, TAU); c.stroke();
+      for (let k = 0; k < 8; k++){ const a = k / 8 * TAU; c.beginPath(); c.moveTo(0, 0); c.lineTo(Math.cos(a) * 22, Math.sin(a) * 22); c.stroke(); }
+      c.fillStyle = 'rgba(80,130,170,.45)'; for (let k = 0; k < 3; k++){ const a = t * 25 + k * TAU / 3; c.beginPath(); c.ellipse(Math.cos(a) * 10, Math.sin(a) * 10, 10, 5, a, 0, TAU); c.fill(); }
+      c.fillStyle = '#2d6fb8'; c.beginPath(); c.arc(0, 0, 4, 0, TAU); c.fill();
+      c.restore();
+    } else if (w.type === 'aircon'){
+      // 窗口冷氣機: the beige box that drips on the pavement
+      c.fillStyle = 'rgba(0,0,0,.2)'; c.fillRect(20, -178, 64, 50);
+      c.fillStyle = '#e4ddcb'; c.fillRect(16, -182, 66, 50);
+      c.fillStyle = '#cfc6b2'; c.fillRect(20, -178, 40, 36);
+      c.fillStyle = 'rgba(80,75,65,.4)'; for (let v = -176; v < -144; v += 4) c.fillRect(22, v, 36, 2);
+      c.fillStyle = '#6f787f'; c.fillRect(64, -176, 14, 6); c.fillStyle = '#c8372d'; c.fillRect(66, -164, 4, 4); c.fillStyle = '#3f8f6b'; c.fillRect(72, -164, 4, 4);
+      c.fillStyle = '#c9cfd4'; for (const u of [66, 72]) c.fillRect(u, -154, 4, 8);
+      c.fillStyle = 'rgba(210,235,250,.4)'; c.fillRect(20, -138, 40, 4);
+    } else if (w.type === 'retroPoster'){
+      // a 70s film poster in a thin brass frame
+      c.fillStyle = '#b8862e'; c.fillRect(22, -200, 56, 96);
+      const g = c.createLinearGradient(0, -196, 0, -108); g.addColorStop(0, '#f2c14e'); g.addColorStop(.6, '#e07a5f'); g.addColorStop(1, '#6b3a5a');
+      c.fillStyle = g; c.fillRect(25, -197, 50, 90);
+      c.fillStyle = '#fbe8c8'; c.beginPath(); c.arc(50, -165, 10, 0, TAU); c.fill();
+      c.fillStyle = '#1f1a17'; c.beginPath(); c.arc(50, -168, 11, Math.PI, 0); c.fill(); c.fillRect(39, -168, 5, 14); c.fillRect(56, -168, 5, 14);
+      c.fillStyle = '#c8372d'; c.beginPath(); c.moveTo(38, -140); c.lineTo(62, -140); c.lineTo(66, -118); c.lineTo(34, -118); c.closePath(); c.fill();
+      c.fillStyle = '#fff4c8'; c.font = `900 12px ${HAN}`; c.fillText('香江夜', 50, -187);
+      c.font = `700 5px ${HAN_SANS}`; c.fillText('一九七八 · 邵氏出品', 50, -112);
+    } else if (w.type === 'menuStrips'){
       const words = ['奶茶', '菠蘿', '多士', '凍檸', '餐蛋'], cols = ['#f6e27a', '#f4b6c2', '#fbfaf2', '#f4b6c2', '#f6e27a'];
       words.forEach((wd, i) => {
         const u = 10 + i * 17; c.fillStyle = cols[i]; c.fillRect(u, -182, 14, 74);
@@ -668,4 +831,101 @@ export function wallItem(c, w, t, hour, day){
       c.shadowColor = '#56d6ff'; c.strokeStyle = on ? '#8fe6ff' : '#2e6f84'; c.lineWidth = 2.5; c.strokeRect(14, -174, 72, 52);
       c.shadowBlur = 0;
     }
+}
+
+
+// ---------------- the room ----------------
+// Glazed green tiles up to a chrome rail, painted mint above, a strip light every few cells.
+export function wallFace(face, x, y, iso){
+  iso.onFace(face, x, y, c => {
+    for (let u = 0; u < 100; u += 12.5) for (let v = 0; v > -95; v -= 12){       // each little tile catches the light
+      const k = hash(x * 8 + u, y * 8 - v, face === 'wallN' ? 1 : 2);
+      c.fillStyle = `rgba(255,255,255,${(.03 + k * .06).toFixed(3)})`; c.fillRect(u + 1, v - 11, 11, 11);
+      c.fillStyle = 'rgba(255,255,255,.18)'; c.fillRect(u + 2, v - 10, 4, 1.5);
+    }
+    c.strokeStyle = 'rgba(230,240,235,.35)'; c.lineWidth = 1;
+    for (let u = 0; u <= 100; u += 12.5){ c.beginPath(); c.moveTo(u, 0); c.lineTo(u, -95); c.stroke(); }
+    for (let v = 0; v >= -95; v -= 12){ c.beginPath(); c.moveTo(0, v); c.lineTo(100, v); c.stroke(); }
+    const g = c.createLinearGradient(0, -104, 0, -96); g.addColorStop(0, '#f4f6f7'); g.addColorStop(.5, '#aab3ba'); g.addColorStop(1, '#6f787f');
+    c.fillStyle = g; c.fillRect(0, -104, 100, 8);                                   // chrome rail
+    c.fillStyle = 'rgba(40,60,50,.05)';                                              // a little wear in the paint
+    for (let i = 0; i < 6; i++){ const u = hash(x, y, i) * 90, v = -110 - hash(y, x, i + 3) * 110; c.beginPath(); c.ellipse(u, v, 8 + hash(i, x, y) * 10, 4, 0, 0, TAU); c.fill(); }
+    const sh = c.createLinearGradient(0, -240, 0, -214); sh.addColorStop(0, 'rgba(30,40,35,.2)'); sh.addColorStop(1, 'rgba(30,40,35,0)');
+    c.fillStyle = sh; c.fillRect(0, -240, 100, 26);
+    if ((face === 'wallN' ? x : y) % 3 === 1){                                       // a bare fluorescent tube
+      c.fillStyle = '#d9dcd8'; c.fillRect(14, -224, 72, 6);
+      c.shadowColor = 'rgba(235,250,255,.9)'; c.shadowBlur = 10; c.fillStyle = '#fbfffe'; c.fillRect(18, -222, 64, 4); c.shadowBlur = 0;
+    }
+  });
+}
+// Aluminium sliding windows with a security grille and an old air-con sticker.
+export function windowFrame(c){
+  c.strokeStyle = '#c5ccd1'; c.lineWidth = 5; c.strokeRect(9, -196, 82, 96);
+  c.fillStyle = '#aeb6bd'; c.fillRect(47, -194, 6, 92);
+  c.strokeStyle = 'rgba(70,75,80,.75)'; c.lineWidth = 1.5;
+  for (let u = 19; u < 90; u += 10){ c.beginPath(); c.moveTo(u, -194); c.lineTo(u, -102); c.stroke(); }
+  c.beginPath(); c.moveTo(11, -148); c.lineTo(89, -148); c.stroke();
+  c.fillStyle = '#fbfaf2'; c.fillRect(60, -135, 24, 16); c.fillStyle = '#2d6fb8'; c.fillRect(60, -135, 24, 5);
+  c.fillStyle = '#c8372d'; c.font = `900 6px ${HAN_SANS}`; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText('冷氣開放', 72, -124);
+  c.fillStyle = '#9aa3ab'; c.fillRect(6, -102, 88, 5);                              // the sill
+}
+// The shop sign: a red lightbox with a neon border and a milk tea cup at one end.
+export function sign(c){
+  const u0 = 22, u1 = 338, v0 = -238, h = 40;
+  c.fillStyle = 'rgba(0,0,0,.25)'; c.fillRect(u0 + 3, v0 + 4, u1 - u0, h);
+  const g = c.createLinearGradient(0, v0, 0, v0 + h); g.addColorStop(0, '#c0271f'); g.addColorStop(1, '#8a1a14');
+  c.fillStyle = g; c.fillRect(u0, v0, u1 - u0, h);
+  c.shadowColor = '#ffd66b'; c.shadowBlur = 8; c.strokeStyle = '#ffe9a0'; c.lineWidth = 2; c.strokeRect(u0 + 4, v0 + 4, u1 - u0 - 8, h - 8); c.shadowBlur = 0;
+  c.font = `900 25px ${HAN}`; c.textAlign = 'center'; c.textBaseline = 'middle';
+  c.fillStyle = 'rgba(60,10,5,.6)'; c.fillText(THEME.meta.sign, 192, v0 + h / 2 + 2);
+  c.fillStyle = '#fff4c8'; c.shadowColor = '#ffd66b'; c.shadowBlur = 6; c.fillText(THEME.meta.sign, 191, v0 + h / 2 + 1); c.shadowBlur = 0;
+  const cu = u0 + 26, cv = v0 + 22;                                                 // the cup
+  c.fillStyle = '#fbfaf5'; c.beginPath(); c.moveTo(cu - 11, cv - 9); c.lineTo(cu + 11, cv - 9); c.lineTo(cu + 8, cv + 8); c.lineTo(cu - 8, cv + 8); c.closePath(); c.fill();
+  c.fillStyle = '#c8894a'; c.beginPath(); c.ellipse(cu, cv - 9, 11, 3, 0, 0, TAU); c.fill();
+  c.strokeStyle = '#fbfaf5'; c.lineWidth = 2.5; c.beginPath(); c.arc(cu + 12, cv - 1, 5, -Math.PI / 2, Math.PI / 2); c.stroke();
+  c.strokeStyle = 'rgba(255,255,255,.8)'; c.lineWidth = 1.5; for (const d of [-4, 3]){ c.beginPath(); c.moveTo(cu + d, cv - 14); c.quadraticCurveTo(cu + d - 3, cv - 18, cu + d, cv - 22); c.stroke(); }
+}
+// "營業中" hung on the front door.
+export function room(iso, dw, door){
+  iso.onFace('wallN', door, 0, c => {                                                // "營業中" hung on the door
+    c.strokeStyle = '#555'; c.lineWidth = 1; c.beginPath(); c.moveTo(44, -170); c.lineTo(50, -178); c.lineTo(56, -170); c.stroke();
+    c.fillStyle = '#fbfaf2'; c.fillRect(36, -170, 28, 13); c.strokeStyle = '#c8372d'; c.strokeRect(36.5, -169.5, 27, 12);
+    c.fillStyle = '#c8372d'; c.font = `900 8px ${HAN_SANS}`; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText('營業中', 50, -163.5);
+  });
+}
+// The half wall onto the kitchen: green tiles with a stainless top.
+export function partition(iso, x){
+  const y0 = DH - .07, y1 = DH + .07;
+  iso.box(x, y0, x + 1, y1, 0, PARTITION_H - .1, PAL.dado, { topCol: PAL.dado });
+  iso.onFace('S', x, y1 - 1, c => {
+    c.strokeStyle = 'rgba(230,240,235,.35)'; c.lineWidth = 1;
+    for (let u = 0; u <= 100; u += 12.5){ c.beginPath(); c.moveTo(u, 0); c.lineTo(u, -110); c.stroke(); }
+    for (let v = 0; v >= -110; v -= 12){ c.beginPath(); c.moveTo(0, v); c.lineTo(100, v); c.stroke(); }
+    c.fillStyle = 'rgba(255,255,255,.15)'; for (let u = 2; u < 100; u += 12.5) for (let v = -10; v > -110; v -= 12) c.fillRect(u, v, 4, 1.5);
+  });
+  iso.box(x - .01, y0 - .05, x + 1.01, y1 + .05, PARTITION_H - .1, PARTITION_H, PAL.steel, { material: 'steel' });
+}
+
+// ---------------- at the table ----------------
+// Drinks in thick cups on saucers (or a tall glass if it's iced), food on green-rimmed plates, a spoon and fork.
+export function serve(iso, items, tx, ty, dx, dy, prog){
+  const g = iso.ctx, n = items.length;
+  items.forEach((it, i) => {
+    const off = (i - (n - 1) / 2) * .24;
+    const fx = tx + .5 - dx * .2 + (dy ? off : 0), fy = ty + .5 - dy * .2 + (dx ? off : 0);
+    const [a, b] = iso.P(fx, fy, .78), sz = iso.s * .42, drink = MENU[it] && MENU[it].m === '杯';
+    g.fillStyle = 'rgba(0,0,0,.12)'; g.beginPath(); g.ellipse(a + 1, b + 2, sz * (drink ? .32 : .5), sz * (drink ? .14 : .22), 0, 0, TAU); g.fill();
+    g.fillStyle = '#fbfaf5'; g.beginPath(); g.ellipse(a, b, sz * (drink ? .32 : .5), sz * (drink ? .14 : .22), 0, 0, TAU); g.fill();
+    g.strokeStyle = drink ? '#c9c2b3' : '#3f8f6b'; g.lineWidth = drink ? 1 : Math.max(1, sz * .04);
+    g.beginPath(); g.ellipse(a, b, sz * (drink ? .3 : .45), sz * (drink ? .13 : .2), 0, 0, TAU); g.stroke();
+    const k = 1 - prog * .6;
+    g.save(); g.globalAlpha = .4 + .6 * k;
+    g.drawImage(iconCanvas(it), a - sz * k / 2, b - sz * .8 * k, sz * k, sz * k);
+    g.restore();
+  });
+  const [sa, sb] = iso.P(tx + .5 - dx * .38 + (dy ? .3 : 0), ty + .5 - dy * .38 + (dx ? .3 : 0), .78);
+  g.strokeStyle = '#b9c0c7'; g.lineWidth = Math.max(1.2, iso.s * .025); g.lineCap = 'round';
+  g.beginPath(); g.moveTo(sa - iso.s * .1, sb - iso.s * .02); g.lineTo(sa + iso.s * .08, sb + iso.s * .05); g.moveTo(sa - iso.s * .06, sb - iso.s * .06); g.lineTo(sa + iso.s * .12, sb + iso.s * .01); g.stroke();
+  g.fillStyle = '#b9c0c7'; g.beginPath(); g.ellipse(sa + iso.s * .1, sb + iso.s * .045, iso.s * .025, iso.s * .014, .3, 0, TAU); g.fill();
+  g.lineCap = 'butt';
 }
