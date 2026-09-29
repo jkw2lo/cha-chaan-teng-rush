@@ -229,7 +229,7 @@ export function tick(run, dt, seatX){
     if (!c) return;
     if (c.state === 'arrive'){
       c.x = Math.max(seatX[i], c.x - SEAT_WALK * dt);
-      if (c.x <= seatX[i]){ c.state = 'wait'; ev(run, 'order', { seat: i, order: c.order }); }
+      if (c.x <= seatX[i]){ c.state = 'wait'; c.saidAt = run.t; ev(run, 'order', { seat: i, order: c.order }); }
     } else if (c.state === 'wait'){
       c.patience -= dt;
       if (c.patience <= 0){ run.walkouts++; ev(run, 'walkout', { seat: i }); leave(run, i, false); }
@@ -252,6 +252,8 @@ export function tick(run, dt, seatX){
     const def = { ...APPLIANCES[key], ...run.timing[key] }, before = a.t;
     a.t += dt;
     if (before < def.ready && a.t >= def.ready) ev(run, 'ready', { app: key });
+    const warnAt = def.burn - (def.burn - def.ready) * .35;
+    if (before < warnAt && a.t >= warnAt) ev(run, 'warn', { app: key });
     if (a.t >= def.burn){ a.ruined = true; run.burnt++; ev(run, 'burnt', { app: key, why: def.late }); }
   }
 

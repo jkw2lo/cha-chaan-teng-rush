@@ -60,6 +60,11 @@ export const sfx = {
   waste(){ noise(.25, .1, 600, 0, 'lowpass'); },
   levelUp(){ [523, 659, 784, 1047, 1319].forEach((f, i) => tone(f, .4, 'triangle', .12, i * .09)); },
   unlock(){ [784, 988, 1175].forEach((f, i) => tone(f, .3, 'triangle', .1, i * .08)); },
+  // Counter Rush: the toaster popping, the kettle coming up to the boil, a warning before something burns
+  pop(){ noise(.05, .2, 1800); tone(520, .08, 'square', .06, .01, 300); },
+  whistle(){ tone(1750, .5, 'sine', .07, 0, 1900); tone(2600, .45, 'sine', .03, .05, 2800); },
+  bubble(){ [0, .07, .15].forEach(d => tone(300 + Math.random() * 200, .08, 'sine', .08, d, 600)); },
+  tick(){ tone(1400, .05, 'square', .05); tone(1400, .05, 'square', .05, .18); },
 };
 
 // A soft frying/boiling bed while the cook is working at a hot station.

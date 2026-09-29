@@ -4,6 +4,7 @@
 import { TAU, HAN, iconCanvas } from '../js/art.js';
 import { INGREDIENTS, APPLIANCES, APPLIANCE_ORDER, BIN_ORDER, RECIPES, DAY, candidates, finished, missing, rawInput, vesselOf, partZh } from './recipes.js';
 import { spotDish, takings } from './sim.js';
+import { phrase } from '../themes/cct/index.js';
 
 export const W = 1280, H = 720;
 const HUD = 48, COUNTER_Y = 296, PREP_Y = 372;
@@ -192,8 +193,11 @@ const OUTFITS = [
   { shirt: '#f28c28', vest: '#e8e23b', name: 'worker' },
   { shirt: '#eef0f2', singlet: true, name: 'uncle' },
   { shirt: '#6f8cae', name: 'casual' },
+  { shirt: '#2f3e5c', blouse: '#fbfbf6', name: 'ol' },
+  { shirt: '#3f9a5a', cap: '#c8372d', name: 'delivery' },
+  { shirt: '#fbfbf6', pinafore: '#2f5aa8', name: 'schoolgirl' },
 ];
-export function drawPerson(c, look, x, yBase, mood, t, eating){
+export function drawPerson(c, look, x, yBase, mood, t, eating, walking){
   const rnd = seeded(look);
   const skin = SKIN[Math.floor(rnd() * SKIN.length)], o = OUTFITS[Math.floor(rnd() * OUTFITS.length)];
   const old = o.name === 'uncle' || (o.name === 'auntie' && rnd() < .5);
@@ -209,6 +213,8 @@ export function drawPerson(c, look, x, yBase, mood, t, eating){
     c.beginPath(); c.moveTo(x + 44, yBase - 70); c.quadraticCurveTo(x + 40, yBase - 88, x + 18, yBase - 92); c.lineTo(x + 26, yBase - 60); c.closePath(); c.fill(); }
   if (o.floral){ c.fillStyle = o.floral; const r2 = seeded(look + 3); for (let i = 0; i < 12; i++){ c.beginPath(); c.arc(x - 38 + r2() * 76, yBase - 80 + r2() * 76, 4, 0, TAU); c.fill(); } }
   if (o.vest){ c.fillStyle = o.vest; c.fillRect(x - 42, yBase - 62, 20, 62); c.fillRect(x + 22, yBase - 62, 20, 62); c.fillStyle = '#d0d0d0'; c.fillRect(x - 42, yBase - 30, 20, 5); c.fillRect(x + 22, yBase - 30, 20, 5); }
+  if (o.blouse){ c.fillStyle = o.blouse; c.beginPath(); c.moveTo(x - 14, yBase - 92); c.lineTo(x + 14, yBase - 92); c.lineTo(x, yBase - 52); c.closePath(); c.fill(); }
+  if (o.pinafore){ c.fillStyle = o.pinafore; c.fillRect(x - 34, yBase - 58, 68, 58); c.fillRect(x - 26, yBase - 92, 9, 36); c.fillRect(x + 17, yBase - 92, 9, 36); }
   if (o.tie){ c.fillStyle = o.tie; c.beginPath(); c.moveTo(x - 5, yBase - 90); c.lineTo(x + 5, yBase - 90); c.lineTo(x + 7, yBase - 40); c.lineTo(x, yBase - 32); c.lineTo(x - 7, yBase - 40); c.closePath(); c.fill(); }
   // neck and head
   c.fillStyle = skin; c.fillRect(x - 9, headY + 26, 18, 16);
@@ -218,7 +224,10 @@ export function drawPerson(c, look, x, yBase, mood, t, eating){
   if (o.name === 'auntie'){ for (let i = 0; i < 9; i++){ c.beginPath(); c.arc(x - 28 + i * 7, headY - 26 + Math.abs(i - 4) * 2.5, 11, 0, TAU); c.fill(); } }
   else if (old && o.name === 'uncle'){ c.beginPath(); c.ellipse(x, headY - 24, 26, 10, 0, Math.PI, 0); c.fill(); c.fillRect(x - 31, headY - 18, 6, 18); c.fillRect(x + 25, headY - 18, 6, 18); }
   else if (o.name === 'student' && rnd() < .5){ c.beginPath(); c.ellipse(x, headY - 12, 33, 28, 0, Math.PI * 1.02, -.02); c.fill(); c.fillRect(x - 33, headY - 12, 10, 34); c.fillRect(x + 23, headY - 12, 10, 34); }
+  else if (o.name === 'ol'){ c.beginPath(); c.ellipse(x, headY - 8, 34, 30, 0, Math.PI * 1.02, -.02); c.fill(); c.fillRect(x - 34, headY - 8, 12, 30); c.fillRect(x + 22, headY - 8, 12, 30); }
+  else if (o.name === 'schoolgirl'){ c.beginPath(); c.ellipse(x, headY - 14, 32, 24, 0, Math.PI * 1.05, -.05); c.fill(); c.beginPath(); c.ellipse(x + 30, headY + 4, 9, 22, -.3, 0, TAU); c.fill(); c.fillStyle = '#c8372d'; c.fillRect(x + 22, headY - 16, 10, 6); }
   else { c.beginPath(); c.ellipse(x, headY - 14, 31, 24, 0, Math.PI * 1.05, -.05); c.fill(); }
+  if (o.cap){ c.fillStyle = o.cap; c.beginPath(); c.ellipse(x, headY - 20, 31, 18, 0, Math.PI, 0); c.fill(); c.fillRect(x - 4, headY - 22, 44, 6); }
   if (o.name === 'worker'){ c.fillStyle = '#f2c14e'; c.beginPath(); c.ellipse(x, headY - 22, 33, 20, 0, Math.PI, 0); c.fill(); c.fillRect(x - 38, headY - 24, 76, 5); }
   // face
   c.fillStyle = '#231d18';
@@ -234,10 +243,18 @@ export function drawPerson(c, look, x, yBase, mood, t, eating){
   else { c.moveTo(x - 6, my); c.lineTo(x + 6, my); }
   c.stroke();
   if (mood === 'angry'){ c.fillStyle = 'rgba(210,60,40,.25)'; c.beginPath(); c.ellipse(x, headY + 8, 26, 16, 0, 0, TAU); c.fill(); }
-  // arms resting on the counter
-  c.fillStyle = o.singlet ? skin : o.shirt;
-  c.beginPath(); c.ellipse(x - 44, yBase - 8, 14, 10, 0, 0, TAU); c.ellipse(x + 44, yBase - 8, 14, 10, 0, 0, TAU); c.fill();
-  c.fillStyle = skin; c.beginPath(); c.ellipse(x - 30, yBase - 4, 11, 7, 0, 0, TAU); c.ellipse(x + 30, yBase - 4, 11, 7, 0, 0, TAU); c.fill();
+  if (walking){
+    // arms swinging at their sides
+    const sw = Math.sin(t * 10) * 8;
+    c.fillStyle = o.singlet ? skin : o.shirt;
+    c.beginPath(); c.ellipse(x - 48, yBase - 50 + sw, 10, 26, .12, 0, TAU); c.ellipse(x + 48, yBase - 50 - sw, 10, 26, -.12, 0, TAU); c.fill();
+    c.fillStyle = skin; c.beginPath(); c.arc(x - 50, yBase - 24 + sw, 8, 0, TAU); c.arc(x + 50, yBase - 24 - sw, 8, 0, TAU); c.fill();
+  } else {
+    // arms resting on the counter
+    c.fillStyle = o.singlet ? skin : o.shirt;
+    c.beginPath(); c.ellipse(x - 44, yBase - 8, 14, 10, 0, 0, TAU); c.ellipse(x + 44, yBase - 8, 14, 10, 0, 0, TAU); c.fill();
+    c.fillStyle = skin; c.beginPath(); c.ellipse(x - 30, yBase - 4, 11, 7, 0, 0, TAU); c.ellipse(x + 30, yBase - 4, 11, 7, 0, 0, TAU); c.fill();
+  }
   c.restore();
 }
 
@@ -503,6 +520,34 @@ function spotHint(sp){
   return [cs.map(r => RECIPES[r].zh).join(' or '), ''];
 }
 
+function speech(c, cu, x, age){
+  if (!cu.said) cu.said = phrase(Object.fromEntries(cu.order.reduce((m, d) => m.set(d, (m.get(d) || 0) + 1), new Map())));
+  const a = Math.min(1, age * 4, (3.2 - age) * 3);
+  c.save(); c.globalAlpha = a;
+  c.font = `900 15px ${HAN}`; const w1 = c.measureText(cu.said.zh).width;
+  c.font = `italic 500 11px ${SANS}`; const w2 = c.measureText(cu.said.jp).width;
+  // to the right of their head, unless that runs into the door
+  const w = Math.max(w1, w2) + 20, left = x + 38 + w > DOOR.x - 12, bx = left ? x - 38 - w : x + 38, by = COUNTER_Y - 146;
+  c.fillStyle = '#15302a'; rr(c, bx, by, w, 42, 10); c.fill();
+  const tx = left ? bx + w : bx, d = left ? -1 : 1;
+  c.beginPath(); c.moveTo(tx + 4 * d, by + 30); c.lineTo(tx - 8 * d, by + 40); c.lineTo(tx + 14 * d, by + 36); c.fill();
+  text(c, cu.said.zh, bx + 10, by + 14, `900 15px ${HAN}`, '#fff', 'left');
+  text(c, cu.said.jp, bx + 10, by + 31, `italic 500 11px ${SANS}`, '#f2d27a', 'left');
+  c.restore();
+}
+function dropTargets(c, run, d, t){
+  const glow = (b, col) => { c.save(); c.setLineDash([10, 7]); c.lineDashOffset = -t * 30; c.strokeStyle = col; c.lineWidth = 3; rr(c, b.x + 3, b.y + 3, b.w - 6, b.h - 6, 12); c.stroke(); c.restore(); };
+  const green = 'rgba(46,158,91,.9)';
+  if (d.ing){
+    for (const k of APPLIANCE_ORDER) if (APPLIANCES[k].takes === d.ing && !run.apps[k].part) glow(L.apps[k], green);
+    return;
+  }
+  const bag = d.bag, dish = !bag.mess && finished(bag.parts);
+  if (bag.mess){ glow(L.trash, 'rgba(200,55,45,.9)'); return; }
+  if (dish) run.seats.forEach((s, i) => { const cu = s.cust; if (cu && cu.state === 'wait' && cu.order.some((o, j) => o === dish && !cu.got[j])) glow({ ...L.seats[i], y: HUD + 4, h: PREP_Y - HUD - 8 }, green); });
+  if (rawInput(bag.parts)) for (const k of APPLIANCE_ORDER) if (APPLIANCES[k].takes === bag.parts[0] && !run.apps[k].part) glow(L.apps[k], green);
+}
+
 // ---------- one frame ----------
 // ui: { t, drag: { bag|ing, x, y }, hover, pulling, floats: [{x, y, text, col, age}], flashBin }
 export function drawFrame(c, run, ui){
@@ -522,20 +567,20 @@ export function drawFrame(c, run, ui){
     const f = cu.patience / cu.max;
     const mood = cu.state === 'leave' ? (cu.happy ? 'happy' : 'angry') : cu.state === 'eat' ? 'happy' : f > .5 ? 'ok' : f > .25 ? 'cross' : 'angry';
     c.globalAlpha = Math.max(.1, Math.min(1, (DOOR.x + 74 - x) / 60));     // fading through the doorway
-    drawPerson(c, cu.look, x, COUNTER_Y + (moving ? Math.abs(Math.sin(t * 10)) * -4 : 0), mood, t, cu.state === 'eat');
+    drawPerson(c, cu.look, x, COUNTER_Y + (moving ? Math.abs(Math.sin(t * 10)) * -4 : 0), mood, t, cu.state === 'eat', moving);
     c.globalAlpha = 1;
     if (cu.state === 'leave' && !cu.happy){ text(c, '唔等喇！', x, COUNTER_Y - 170, `900 18px ${HAN}`, '#9e1f19'); }
   }
   run.seats.forEach((s, i) => {
     const x = SEAT_X[i], cu = s.cust;
-    if (cu && cu.state === 'wait') bubble(c, cu, x, t);
+    if (cu && cu.state === 'wait'){ bubble(c, cu, x, t); if (run.t - cu.saidAt < 3.2) speech(c, cu, x, run.t - cu.saidAt); }
     // served dishes sit on the counter in front of the customer
     if (cu && (cu.state === 'wait' || cu.state === 'eat')){
       const served = cu.order.filter((d, j) => cu.got[j]);
       served.forEach((d, j) => {
         const dx = x + (j - (served.length - 1) / 2) * 64;
         if (cu.state === 'eat' && cu.eat > 1.5) drawEmpty(c, RECIPES[d].vessel, dx, COUNTER_Y + 12, 26);
-        else c.drawImage(iconCanvas(d, 128), dx - 30, COUNTER_Y - 18, 60, 60);
+        else { c.drawImage(iconCanvas(d, 128), dx - 30, COUNTER_Y - 18, 60, 60); if (d === 'hotTea') steam(c, dx, COUNTER_Y - 14, t + j, false); }
       });
       if (cu.state === 'eat'){ c.fillStyle = 'rgba(255,255,255,.9)'; rr(c, x - 40, COUNTER_Y - 200, 80, 26, 13); c.fill(); text(c, '好味！', x, COUNTER_Y - 187, `900 15px ${HAN}`, '#2e7d4f'); }
     }
@@ -597,7 +642,7 @@ export function drawFrame(c, run, ui){
     text(c, active ? `▶ Spot ${i + 1}` : `Spot ${i + 1}`, b.x + 8, b.y + 10, `700 12px ${SANS}`, active ? '#15302a' : '#4a5458', 'left');
     if (active){ c.strokeStyle = '#f2d27a'; c.lineWidth = 4; rr(c, b.x + 2, b.y + 24, b.w - 4, b.h - 26, 9); c.stroke(); }
     if (ui.dropSpot === i){ c.strokeStyle = '#2e9e5b'; c.lineWidth = 4; rr(c, b.x + 2, b.y + 24, b.w - 4, b.h - 26, 9); c.stroke(); }
-    if (sp && !(ui.drag && ui.drag.spot === i)) drawBag(c, sp.parts, sp.mess, cx, b.y + 88, 44);
+    if (sp && !(ui.drag && ui.drag.spot === i)){ drawBag(c, sp.parts, sp.mess, cx, b.y + 88, 44); if (!sp.mess && sp.parts.includes('brewTea')) steam(c, cx, b.y + 58, t + i, false); }
     const [h1, h2] = ui.drag && ui.drag.spot === i ? ['', ''] : spotHint(sp);
     if (h1){ c.fillStyle = sp.mess ? 'rgba(158,31,25,.9)' : spotDish(sp) ? 'rgba(29,107,63,.92)' : 'rgba(21,48,42,.82)'; rr(c, b.x + 6, b.y + 142, b.w - 12, 38, 7); c.fill();
       text(c, h1, cx, b.y + 153, `900 13px ${HAN}`, '#fff'); if (h2) text(c, h2, cx, b.y + 170, `700 11px ${SANS}`, '#f2d27a'); }
@@ -610,6 +655,17 @@ export function drawFrame(c, run, ui){
     if (ui.dropApp === k){ const b = L.apps[k]; c.strokeStyle = ui.dropOk ? '#2e9e5b' : '#c8372d'; c.lineWidth = 4; rr(c, b.x + 2, b.y + 2, b.w - 4, b.h - 4, 10); c.stroke(); }
   }
 
+  // while dragging, show where it can go
+  if (ui.drag && ui.drag.moved) dropTargets(c, run, ui.drag, t);
+  // coins flying from the counter to the till
+  for (const k of ui.coins){
+    if (k.age < 0) continue;
+    const p = Math.min(1, k.age / .8), e = p * p;
+    const x = k.x + (1060 - k.x) * e, y = COUNTER_Y - 10 + (24 - COUNTER_Y + 10) * e - Math.sin(p * Math.PI) * 80;
+    c.fillStyle = '#e3b23c'; c.beginPath(); c.arc(x, y, 7, 0, TAU); c.fill();
+    c.strokeStyle = '#a8801c'; c.lineWidth = 1.5; c.stroke();
+    text(c, '$', x, y + .5, `700 9px ${SANS}`, '#7a5a10');
+  }
   // floating numbers
   for (const f of ui.floats){
     c.globalAlpha = Math.max(0, 1 - f.age / 1.6);

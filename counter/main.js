@@ -21,7 +21,7 @@ let settings = loadSettings();
 const freshRun = () => S.newRun(Math.random, { ...settings, label: settingsLabel(settings) });
 let run = freshRun();
 let started = false, paused = false, phoneOpen = false, summaryShown = false;
-const ui = { t: 0, drag: null, floats: [], hover: null, pulling: false };
+const ui = { t: 0, drag: null, floats: [], coins: [], hover: null, pulling: false };
 
 // ---------- sizing: a 1280×720 stage, scaled to fit ----------
 let scale = 1, ox = 0, oy = 0;
@@ -53,11 +53,12 @@ function handleEvents(){
       case 'add': case 'load': sfx.queue(); break;
       case 'dish': sfx.ready(); { const p = spotCentre(e.spot); float(p.x, p.y - 30, RECIPES[e.dish].zh + '!', '#1d6b3f'); } break;
       case 'mess': sfx.waste(); { const p = spotCentre(e.spot); float(p.x, p.y - 30, e.why || 'Mess!', '#9e1f19'); } break;
-      case 'ready': sfx.ready(); break;
+      case 'ready': ({ kettle: sfx.whistle, toaster: sfx.pop, pot: sfx.bubble })[e.app](); break;
+      case 'warn': sfx.tick(); break;
       case 'out': sfx.clear(); break;
       case 'burnt': sfx.walkout(); { const b = L.apps[e.app]; float(b.x + b.w / 2, b.y + 110, e.why + '!', '#9e1f19'); } break;
       case 'serve': sfx.bell(); break;
-      case 'pay': sfx.cash(); float(SEAT_X[e.seat], 200, `+$${e.price + e.tip}`, '#1d6b3f'); if (e.tip) float(SEAT_X[e.seat], 230, `tip $${e.tip}`, '#2e7d4f'); break;
+      case 'pay': sfx.cash(); for (let k = 0; k < 4; k++) ui.coins.push({ x: SEAT_X[e.seat] + (k - 1.5) * 14, age: -k * .08 }); float(SEAT_X[e.seat], 200, `+$${e.price + e.tip}`, '#1d6b3f'); if (e.tip) float(SEAT_X[e.seat], 230, `tip $${e.tip}`, '#2e7d4f'); break;
       case 'walkout': sfx.walkout(); break;
       case 'arrive': sfx.door(); break;
       case 'order': { const n = {}; e.order.forEach(d => n[d] = (n[d] || 0) + 1); callOut(n); } break;
@@ -233,6 +234,7 @@ function showSummary(){
       <dt>Messes</dt><dd>${run.messes}</dd>
       <dt>Burnt or stewed</dt><dd>${run.burnt}</dd>
     </dl>
+    ${historyHTML(recordRound())}
     ${difficultyHTML('For the next round')}
     <div class="row"><button type="button" class="go" id="againBtn">Play again</button><a class="ghost" href="../#hongkong">Back to all restaurants</a></div>`;
   wireDifficulty();
@@ -265,6 +267,27 @@ function wireDifficulty(){
   box.querySelectorAll('[data-knob]').forEach(inp => inp.oninput = () => { settings = { ...settings, [inp.dataset.knob]: +inp.value }; sync(); });
 }
 
+// switching away pauses the counter, so nobody walks out while you're in another tab
+document.addEventListener('visibilitychange', () => { if (document.hidden && playing()){ togglePause(); if (ui.pulling){ ui.pulling = false; stopSizzle(); S.releasePull(run); } } });
+
+// ---------- round history, for calibrating the difficulty ----------
+const HISTORY_KEY = 'counter-rush-history';
+function loadHistory(){ try { return JSON.parse(localStorage.getItem(HISTORY_KEY) || '[]'); } catch (e) { return []; } }
+function recordRound(){
+  const h = loadHistory();
+  h.unshift({ when: Date.now(), label: run.cfgLabel, target: run.target, takings: S.takings(run), served: run.served, customers: run.customers,
+    walkouts: run.walkouts, messes: run.messes, burnt: run.burnt, stars: S.stars(run) });
+  try { localStorage.setItem(HISTORY_KEY, JSON.stringify(h.slice(0, 8))); } catch (e) {}
+  return h.slice(0, 8);
+}
+function historyHTML(h){
+  if (h.length < 2) return '';
+  return `<details class="hist"><summary>Your last ${h.length} rounds</summary><table>
+    <thead><tr><th>Difficulty</th><th>Taken</th><th>Served</th><th>Walked</th><th>Messes</th><th>Stars</th></tr></thead>
+    <tbody>${h.map((r, i) => `<tr${i ? '' : ' class="now"'}><td>${r.label}</td><td>$${r.takings} <small>/ $${r.target}</small></td><td>${r.served}/${r.customers}</td>
+      <td>${r.walkouts}</td><td>${r.messes + r.burnt}</td><td>${'★'.repeat(r.stars) || '–'}</td></tr>`).join('')}</tbody></table></details>`;
+}
+
 // ---------- the loop ----------
 let last = performance.now(), phoneTick = 0;
 function frame(now){
@@ -281,6 +304,8 @@ function frame(now){
     if (phoneOpen && (phoneTick += dt) > .25){ phoneTick = 0; renderPhone(); }
   }
   for (const f of ui.floats) f.age += dt;
+  for (const k of ui.coins) k.age += dt;
+  ui.coins = ui.coins.filter(k => k.age < .9);
   ui.floats = ui.floats.filter(f => f.age < 1.6);
   drawFrame(c, run, { ...ui, paused: paused && $('card').hidden, flashBin: null });
   requestAnimationFrame(frame);
