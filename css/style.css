@@ -549,3 +549,11 @@ button.qslot{border:0; padding:0; background:#fff; cursor:pointer; font:inherit}
 .side .invpanel .inv .qo{padding:4px 9px}
 #inv.compact{gap:10px}
 #inv.compact .inv{padding:12px 11px 13px; row-gap:8px}
+/* two inventory columns that always fit: share the width instead of sizing to their widest content */
+#app{grid-template-columns:390px 1fr}
+#inv.compact{grid-template-columns:repeat(2, minmax(0, 1fr))}
+#inv.compact .inv{min-width:0}
+#inv.compact .inv .qty{white-space:nowrap}
+.side{overflow-x:hidden}
+#inv.compact .inv .qo small{display:none}
+#inv.compact .inv .qo{padding:3px 9px}
