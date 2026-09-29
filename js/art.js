@@ -185,8 +185,9 @@ export function counter(iso, x, y, body){
   iso.box(x + .01, y + .01, x + .99, y + .99, .84, .92, PAL.steel, { material: 'steel' });
 }
 export function label(iso, st, text, bg){
-  // Both faces the camera can see get the sign, so every station reads at a glance.
-  for (const face of ['S', 'E']) iso.onFace(face, st.x, st.y, c => {
+  // The sign goes on the front when the camera can see it; a station turned away shows it on both sides we can see.
+  const faces = st.dir === 'S' || st.dir === 'E' ? [st.dir] : ['S', 'E'];
+  for (const face of faces) iso.onFace(face, st.x, st.y, c => {
     c.fillStyle = bg; c.fillRect(10, -74, 80, 38);
     c.strokeStyle = 'rgba(255,255,255,.85)'; c.lineWidth = 2; c.strokeRect(13, -71, 74, 32);
     c.fillStyle = '#fff'; c.font = `900 ${text.length > 3 ? 17 : text.length > 2 ? 22 : 26}px ${HAN}`; c.textAlign = 'center'; c.textBaseline = 'middle';

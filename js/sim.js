@@ -346,6 +346,15 @@ export function discardTray(S, R, id){
   wasteTray(S, R, t, 'thrown out');
   return t;
 }
+// Take one job off the cook's queue. If the cook had already started it, the ingredients go back on the shelf.
+export function removeJob(S, R, id){
+  const i = R ? R.queue.findIndex(q => q.id === id) : -1;
+  if (i < 0) return null;
+  const [q] = R.queue.splice(i, 1);
+  if (q.started) for (const [ing, n] of Object.entries(MENU[q.item].recipe)) S.stock[ing] += n;
+  if (i === 0 && R.avatar.phase !== 'idle'){ R.avatar.phase = 'idle'; R.avatar.path = []; R.avatar.blocked = false; }
+  return q;
+}
 function makeRoom(S, R, need){
   const claims = passClaims(R), claimed = {};
   for (const got of claims.values()) for (const [it, n] of Object.entries(got)) claimed[it] = (claimed[it] || 0) + n;
@@ -433,7 +442,7 @@ export function tick(S, R, dt){
       R.deliveries.splice(R.deliveries.indexOf(d), 1);
       say(R, `+${d.qty} ${INGREDIENTS[d.ing].name.toLowerCase()} arrived`, 'good');
       emit(R, 'delivery');
-      toast(R, `Delivery arrived: ${INGREDIENTS[d.ing].zh} ×${d.qty}`, 'good');
+      (R.arrived ||= {})[d.ing] = { t: R.t, qty: d.qty };   // the inventory row shows it for a few seconds
       checkUnlocks(S, R);
     }
   }

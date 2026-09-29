@@ -1,6 +1,6 @@
 import { DECOR, APPLIANCES, MENU, INGREDIENTS, MENU_ORDER, useTheme, THEME } from './data.js';
 import { fresh, load, save, clearSave } from './state.js';
-import { newRun, tick, clickStation, placeStockOrder, checkUnlocks, fmtMoney, itemReady, hasStation, maxed, discardTray, buyBoost, servingCost } from './sim.js';
+import { newRun, tick, clickStation, placeStockOrder, checkUnlocks, fmtMoney, itemReady, hasStation, maxed, discardTray, removeJob, buyBoost, servingCost } from './sim.js';
 import { draw, hitTest, billboardHit, invalidateStatic, viewCentre, computeView } from './render.js';
 import { Iso } from './iso.js';
 import * as A from './art.js';
@@ -287,6 +287,11 @@ $('tray').addEventListener('pointerdown', e => {
   const t = discardTray(S, R, Number(b.dataset.trash));
   if (t){ sfx.waste(); UI.flash(`Threw out ${MENU[t.item].zh} ${MENU[t.item].name.toLowerCase()} (−${fmtMoney(servingCost(t.item))}).`); }
 });
+$('queue').addEventListener('pointerdown', e => {
+  const b = e.target.closest('[data-job]');
+  if (!b || phase !== 'day') return;
+  removeJob(S, R, Number(b.dataset.job));
+});
 $('boosts').addEventListener('pointerdown', e => {
   const b = e.target.closest('[data-boost]');
   if (!b || b.disabled) return;
@@ -321,7 +326,7 @@ $('inv').addEventListener('pointerdown', e => {
   if (!b || b.disabled || phase === 'title' || phase === 'summary') return;
   const k = b.dataset.quick, r = placeStockOrder(S, R, { [k]: 1 });
   if (!r.ok){ UI.flash(r.msg, 'bad'); return; }
-  UI.flash(r.live ? `Ordered ${INGREDIENTS[k].pack} ${INGREDIENTS[k].name.toLowerCase()} for ${fmtMoney(r.cost)}. Arrives in ${INGREDIENTS[k].delivery}s.` : `${INGREDIENTS[k].pack} ${INGREDIENTS[k].name.toLowerCase()} delivered for ${fmtMoney(r.cost)}.`, 'good');
+  if (!r.live) UI.flash(`${INGREDIENTS[k].pack} ${INGREDIENTS[k].name.toLowerCase()} delivered for ${fmtMoney(r.cost)}.`, 'good');   // mid-day, the row shows the delivery
   if (phase === 'prep'){ save(S); showBanner(); }
 });
 $('kitchenBtn').onclick = () => beginEdit('kitchen');
@@ -357,9 +362,7 @@ canvas.addEventListener('pointermove', e => {
   if (st){
     const ap = APPLIANCES[st.type], m = ap.makes && MENU[ap.makes];
     const locked = m && !S.unlocked.includes(ap.makes);
-    tip.innerHTML = `<b>${ap.zh} ${ap.name}</b>${m ? `<span>Makes ${m.name.toLowerCase()} · ${Math.round(m.cook * ap.speed * 10) / 10}s · sells for ${fmtMoney(m.price)}</span>` : ''}
-      ${locked ? `<span class="warn">Not on the menu yet. Order ${Object.keys(m.recipe).filter(i => S.stock[i] <= 0).map(i => INGREDIENTS[i].name.toLowerCase()).join(' and ')} to unlock.</span>` : ''}
-      ${m && phase === 'day' ? '<span class="dim">Each click adds a job (up to 5). One more click clears them. Right-click clears.</span>' : ''}`;
+    tip.innerHTML = `<b>${ap.zh} ${ap.name}</b>${locked ? `<span class="warn">Order ${Object.keys(m.recipe).filter(i => S.stock[i] <= 0).map(i => INGREDIENTS[i].name.toLowerCase()).join(' and ')} to unlock.</span>` : ''}`;
     tip.style.left = Math.min(x + 16, cssW - 250) + 'px'; tip.style.top = Math.max(8, y - 10) + 'px';
     tip.hidden = false;
   } else tip.hidden = true;

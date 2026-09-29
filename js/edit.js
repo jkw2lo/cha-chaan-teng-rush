@@ -94,13 +94,19 @@ export function rotate(S, R, ui){
   if (E.ghostItem){ E.ghostItem.dir = rotateDir(E.ghostItem.dir || 'S'); return null; }
   const it = E.selected && find(S, E.room, E.selected);
   if (!it || it.dir === undefined) return null;
+  if (E.room === 'kitchen' && APPLIANCES[it.type].fixed) return null;   // the hatch stays as it is
   const before = it.dir;
-  it.dir = rotateDir(it.dir);
-  if (E.room === 'kitchen'){
-    const problem = kitchenProblem(S.kitchen, avatarCell(R));
-    if (problem){ it.dir = before; return problem; }
+  if (E.room !== 'kitchen'){ it.dir = rotateDir(it.dir); return null; }
+  // Turn to the next direction that works, skipping any that face a wall or block something.
+  let problem = null;
+  for (let i = 0; i < 3; i++){
+    it.dir = rotateDir(it.dir);
+    const p = kitchenProblem(S.kitchen, avatarCell(R));
+    if (!p) return null;
+    problem ??= p;
   }
-  return null;
+  it.dir = before;
+  return `It only works facing this way here. ${problem}`;
 }
 
 export function sell(S, ui){

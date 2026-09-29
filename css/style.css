@@ -526,7 +526,7 @@ body.dragging, body.dragging *{cursor:grabbing !important; user-select:none}
 .qslot > i{max-width:calc(100% - 8px)}
 button.qslot{border:0; padding:0; background:#fff; cursor:pointer; font:inherit}
 .qslot .bin{position:absolute; inset:0; display:none; place-items:center; border-radius:50%; background:rgba(200,55,45,.82); color:#fff; font:700 22px/1 var(--body)}
-.qslot.pass:hover .bin{display:grid}
+.qslot.pass:hover .bin, .qslot.job:hover .bin{display:grid}
 .cookbar{grid-template-columns:auto auto auto 1fr}
 .boosts{display:grid; gap:6px}
 .boost{position:relative; display:grid; grid-template-columns:auto 1fr auto; gap:8px; align-items:center; border:0; border-radius:10px; padding:5px 10px; background:#fff; box-shadow:inset 0 0 0 1px #d6c9ab; color:var(--ink); text-align:left; overflow:hidden; min-width:190px}
@@ -566,3 +566,13 @@ button.qslot{border:0; padding:0; background:#fff; cursor:pointer; font:inherit}
 .side-resizer:hover::after, .side-resizer.dragging::after, .side-resizer:focus-visible::after{background:var(--gold)}
 .side-resizer:focus-visible{outline:none}
 body.resizing, body.resizing *{cursor:col-resize !important; user-select:none}
+
+/* the stage is sized by the window, never by what's in the strip above it
+   (a longer feed line or the "pass full" note used to widen the whole column and rescale the shop) */
+.work{grid-template-columns:minmax(0, 1fr)}
+.work > *{min-width:0}
+.cookbar{overflow:hidden}
+.col-feed{min-width:0; overflow:hidden}
+/* a delivery lights up its inventory row for a moment instead of popping up over the shop */
+.arr{color:#237a45; font-weight:700}
+.inv.arrived{background:#e3f4e5; border-radius:8px}

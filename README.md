@@ -16,7 +16,7 @@ Plain HTML, CSS and JS modules. No build step and no dependencies. It runs in an
 The game engine is shared; each restaurant is a theme in `themes/`:
 
 - **Cha Chaan Teng Rush** (`themes/cct`, at `/cct/`): milk tea, pineapple buns, noodles and toast.
-- **Dim Sum Rush** (`themes/dimsum`, at `/dimsum/`): a Sunday-morning 酒樓. Steamers make several baskets per job (`batch`), finished baskets ride on a trolley that holds 8, waiters push the trolley to the tables, and a full trolley sheds its oldest unwanted basket (counted as waste) instead of jamming the kitchen.
+- **Dim Sum Rush** (`themes/dimsum`, at `/dimsum/`): a Sunday-morning 酒樓. Finished baskets ride on a trolley that holds 8, waiters push the trolley to the tables, and a full trolley sheds its oldest unwanted basket (counted as waste) instead of jamming the kitchen.
 
 Each keeps its own save. The landing page (`index.html`) shows where each save is up to.
 
@@ -37,7 +37,7 @@ ES modules don't load from `file://`, so serve the folder. Needs Node 18 or late
 
 ## Controls
 
-- **Click a station** to give the cook a job; keep clicking to line up more; right-click clears that station's jobs.
+- **Click a station** to give the cook a job; keep clicking to line up more; right-click clears that station's jobs. Click a job in the cook's queue (it shows ×) to take just that one off; if the cook had started it, the ingredients go back on the shelf.
 - **Mouse wheel / trackpad** zooms toward the pointer; drag empty floor to pan. **K** jumps to the kitchen, **0** shows the whole shop, **+ / −** zoom.
 - **Space** pauses. The speed button cycles 1× / 2× / 3×.
 - While editing: drag to buy or move, **R** rotates, **Esc** cancels or deselects.
@@ -54,7 +54,7 @@ Add `?debug` to the URL for `window.cct` in the console: `cct.S` (save), `cct.R`
 - **Throwing out.** Click a dish on the pass to bin it and free the spot. It counts as waste, like anything that goes stale.
 - **Boosters** (加油), for busy spells, one of each at a time: *coffee for the cook* ($40) cuts each dish’s cooking time by 35% for 60 seconds (walking between stations isn’t sped up); a *free drinks round* ($60) makes waiting customers twice as patient for 60 seconds. Dim sum has its own versions (strong tea, free snacks).
 - **Money and popularity.** Faster tickets earn bigger tips and more popularity. A walkout costs 4 popularity. Popularity sets how often customers turn up.
-- **Stock.** Every item uses ingredients. What's already in the queue is reserved. Each ingredient holds 2 packs, plus 1 more pack per stock shelf in the kitchen; you can't order past that. Deliveries during the day take 30–60 seconds. Orders placed between days arrive before opening. If everything on the menu is sold out and nothing is on the way, the shop has to close early.
+- **Stock.** Every item uses ingredients. What's already in the queue is reserved. Each ingredient holds 2 packs, plus 1 more pack per stock shelf in the kitchen; you can't order past that. Deliveries during the day take 30–60 seconds; the inventory row shows the countdown, then turns green for a moment when it arrives. Orders placed between days arrive before opening. If everything on the menu is sold out and nothing is on the way, the shop has to close early.
 - **Targets.** Each day has a sales target (sales plus tips) and two goals picked for that day, such as serving a number of tickets or wasting nothing. The sales target pays $100 and +3 popularity; each goal pays $60. The day summary scores you out of three stars.
 - **Unlocks.** Iced milk tea and 菠蘿油 aren't on the menu until you've bought ice and butter for the first time.
 - **Levels.** The stars from daily targets add up to a restaurant level, from 1 to 10 (3, 7, 12, 17, 23, 29, 36, 43 and 50 stars). Each level opens a new dish: its station appears in the kitchen shop and its ingredients in the inventory. A dish goes on the menu once you own its station and have its ingredients. The sales target follows your level, not the day.

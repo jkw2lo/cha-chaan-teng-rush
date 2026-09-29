@@ -82,9 +82,10 @@ export function renderSide(S, R){
     const pct = Math.min(100, (Math.max(0, stock) / cap) * 100), incPct = Math.min(100 - pct, incoming(R, k) / cap * 100);
     const tone = stock <= 0 ? 'out' : stock < 4 ? 'low' : '';
     const unlocks = MENU_ORDER.filter(m => !S.unlocked.includes(m) && itemReady(S, m) && MENU[m].recipe[k]);
-    const note = inc.length ? `<span class="inc">+${inc.reduce((s2, d) => s2 + d.qty, 0)} in ${secs(Math.min(...inc.map(d => d.left)))}</span>`
+    const got = R && R.arrived && R.arrived[k], fresh = got && R.t - got.t < 4;
+    const note = fresh ? `<span class="arr">+${got.qty} arrived</span>` : inc.length ? `<span class="inc">+${inc.reduce((s2, d) => s2 + d.qty, 0)} in ${secs(Math.min(...inc.map(d => d.left)))}</span>`
       : unlocks.length && stock <= 0 ? `<span class="unl">unlocks ${unlocks.map(m => MENU[m].zh).join(' ')}</span>` : '';
-    return `<div class="inv ${tone}" title="${ing.name} (${ing.zh}): ${stock} of ${cap}">
+    return `<div class="inv ${tone}${fresh ? ' arrived' : ''}" title="${ing.name} (${ing.zh}): ${stock} of ${cap}">
       <span class="chip" style="--c:${ing.color}">${ing.glyph}</span><span class="nm">${ing.name}</span>
       <div class="bar"><i style="width:${pct}%"></i><i class="incbar" style="width:${incPct}%"></i></div>
       <b class="qty">${stock <= 0 ? 'Out' : stock}<small> / ${cap}</small></b><span class="invnote">${note}</span>
@@ -100,7 +101,7 @@ export function renderSide(S, R){
     if (!e){ qh += `<span class="qslot empty">${i + 1}</span>`; continue; }
     const active = i === 0 && R.avatar.phase !== 'idle';
     const prog = active && R.avatar.phase === 'cook' ? 1 - Math.max(0, R.avatar.cookLeft) / R.avatar.cookTotal : 0;
-    qh += `<span class="qslot ${active ? 'active' : ''}" title="${MENU[e.item].name}"><img src="${icon(e.item)}" alt="${MENU[e.item].name}"><b>${i + 1}</b>${active ? `<i style="width:${Math.round(prog * 100)}%"></i>` : ''}</span>`;
+    qh += `<button type="button" class="qslot job ${active ? 'active' : ''}" data-job="${e.id}" title="${MENU[e.item].name}. Click to take it off the queue."><img src="${icon(e.item)}" alt="${MENU[e.item].name}"><b>${i + 1}</b><span class="bin" aria-hidden="true">×</span>${active ? `<i style="width:${Math.round(prog * 100)}%"></i>` : ''}</button>`;
   }
   setHTML('queue', qh);
   const tray = R ? R.tray : [];

@@ -1,5 +1,5 @@
-// Dim sum teahouse (飲茶): a Sunday-morning 酒樓. Steamers make several baskets per job
-// (`batch`), finished baskets ride out on the trolley, and every table wants its tea.
+// Dim sum teahouse (飲茶): a Sunday-morning 酒樓. Finished baskets ride out on the trolley,
+// and every table wants its tea.
 
 // cost is per pack; delivery is seconds during a day (orders placed between days arrive before opening)
 export const INGREDIENTS = {
@@ -22,22 +22,21 @@ export const INGREDIENTS = {
   broth:    { name: 'Superior broth',    zh: '上湯', glyph: '湯', pack: 12, cost: 54, delivery: 55, color: '#b8862e' },
 };
 
-// Prices are per basket/plate, and a steamer makes several per job, so they sit lower than the cha chaan teng's.
-// batch = baskets/plates one job makes. m = measure word (籠 basket, 碟 plate, 壺 pot, 個 piece, 盅 soup cup).
+// Prices are per basket/plate; each job makes one. m = measure word (籠 basket, 碟 plate, 壺 pot, 個 piece, 盅 soup cup).
 export const MENU = {
   puer:        { name: 'Pu-erh tea',           zh: '普洱茶', jp: 'pou2 nei2 caa4', m: '壺', price: 9, recipe: { tea: 1 },                     cook: 4,  fresh: 70, weight: 4 },
-  harGow:      { name: 'Shrimp dumplings',     zh: '蝦餃',   jp: 'haa1 gaau2',     m: '籠', price: 14, recipe: { shrimp: 1, wrapper: 1 },       cook: 10, fresh: 60, weight: 3, batch: 3 },
-  siuMai:      { name: 'Pork dumplings',       zh: '燒賣',   jp: 'siu1 maai2',     m: '籠', price: 13, recipe: { pork: 1, wrapper: 1 },         cook: 10, fresh: 60, weight: 3, batch: 3 },
-  charSiuBao:  { name: 'Char siu buns',        zh: '叉燒包', jp: 'caa1 siu1 baau1', m: '籠', price: 12, recipe: { charsiu: 1, dough: 1 },        cook: 12, fresh: 70, weight: 3, batch: 3 },
-  cheungFun:   { name: 'Rice noodle rolls',    zh: '腸粉',   jp: 'coeng4 fan2',    m: '碟', price: 17, recipe: { batter: 1, shrimp: 1 },        cook: 9,  fresh: 45, weight: 2, batch: 2, level: 2 },
-  turnipCake:  { name: 'Turnip cake',          zh: '蘿蔔糕', jp: 'lo4 baak6 gou1', m: '碟', price: 13, recipe: { turnip: 1 },                   cook: 8,  fresh: 60, weight: 2, batch: 2, level: 3 },
-  chickenFeet: { name: 'Phoenix claws',        zh: '鳳爪',   jp: 'fung6 zaau2',    m: '碟', price: 12, recipe: { feet: 1, blackbean: 1 },       cook: 12, fresh: 70, weight: 2, batch: 3, level: 4 },
-  spareRibs:   { name: 'Black bean spare ribs', zh: '豉汁排骨', jp: 'si6 zap1 paai4 gwat1', m: '碟', price: 13, recipe: { ribs: 1, blackbean: 1 }, cook: 12, fresh: 60, weight: 2, batch: 3, level: 5 },
-  loMaiGai:    { name: 'Sticky rice in lotus leaf', zh: '糯米雞', jp: 'no6 mai5 gai1', m: '個', price: 14, recipe: { glutinous: 1, chicken: 1 }, cook: 14, fresh: 80, weight: 2, batch: 3, level: 6 },
-  springRoll:  { name: 'Spring rolls',         zh: '春卷',   jp: 'ceon1 gyun2',    m: '碟', price: 12, recipe: { wrapper: 1, pork: 1 },         cook: 8,  fresh: 45, weight: 2, batch: 2, level: 7 },
-  custardBun:  { name: 'Molten custard buns',  zh: '流沙包', jp: 'lau4 saa1 baau1', m: '籠', price: 13, recipe: { dough: 1, custard: 1 },       cook: 12, fresh: 60, weight: 2, batch: 3, level: 8 },
-  eggTart:     { name: 'Egg tarts',            zh: '蛋撻',   jp: 'daan6 taat1',    m: '碟', price: 9, recipe: { pastry: 1, egg: 1 },           cook: 12, fresh: 80, weight: 2, batch: 4, level: 9 },
-  soupDumpling:{ name: 'Soup dumpling',        zh: '灌湯餃', jp: 'gun3 tong1 gaau2', m: '盅', price: 28, recipe: { shrimp: 1, pork: 1, broth: 1 }, cook: 16, fresh: 45, weight: 2, batch: 2, level: 10 },
+  harGow:      { name: 'Shrimp dumplings',     zh: '蝦餃',   jp: 'haa1 gaau2',     m: '籠', price: 14, recipe: { shrimp: 1, wrapper: 1 },       cook: 5, fresh: 60, weight: 3 },
+  siuMai:      { name: 'Pork dumplings',       zh: '燒賣',   jp: 'siu1 maai2',     m: '籠', price: 13, recipe: { pork: 1, wrapper: 1 },         cook: 5, fresh: 60, weight: 3 },
+  charSiuBao:  { name: 'Char siu buns',        zh: '叉燒包', jp: 'caa1 siu1 baau1', m: '籠', price: 12, recipe: { charsiu: 1, dough: 1 },        cook: 6, fresh: 70, weight: 3 },
+  cheungFun:   { name: 'Rice noodle rolls',    zh: '腸粉',   jp: 'coeng4 fan2',    m: '碟', price: 17, recipe: { batter: 1, shrimp: 1 },        cook: 6,  fresh: 45, weight: 2, level: 2 },
+  turnipCake:  { name: 'Turnip cake',          zh: '蘿蔔糕', jp: 'lo4 baak6 gou1', m: '碟', price: 13, recipe: { turnip: 1 },                   cook: 5,  fresh: 60, weight: 2, level: 3 },
+  chickenFeet: { name: 'Phoenix claws',        zh: '鳳爪',   jp: 'fung6 zaau2',    m: '碟', price: 12, recipe: { feet: 1, blackbean: 1 },       cook: 6, fresh: 70, weight: 2, level: 4 },
+  spareRibs:   { name: 'Black bean spare ribs', zh: '豉汁排骨', jp: 'si6 zap1 paai4 gwat1', m: '碟', price: 13, recipe: { ribs: 1, blackbean: 1 }, cook: 6, fresh: 60, weight: 2, level: 5 },
+  loMaiGai:    { name: 'Sticky rice in lotus leaf', zh: '糯米雞', jp: 'no6 mai5 gai1', m: '個', price: 14, recipe: { glutinous: 1, chicken: 1 }, cook: 7, fresh: 80, weight: 2, level: 6 },
+  springRoll:  { name: 'Spring rolls',         zh: '春卷',   jp: 'ceon1 gyun2',    m: '碟', price: 12, recipe: { wrapper: 1, pork: 1 },         cook: 5,  fresh: 45, weight: 2, level: 7 },
+  custardBun:  { name: 'Molten custard buns',  zh: '流沙包', jp: 'lau4 saa1 baau1', m: '籠', price: 13, recipe: { dough: 1, custard: 1 },       cook: 6, fresh: 60, weight: 2, level: 8 },
+  eggTart:     { name: 'Egg tarts',            zh: '蛋撻',   jp: 'daan6 taat1',    m: '碟', price: 9, recipe: { pastry: 1, egg: 1 },           cook: 5, fresh: 80, weight: 2, level: 9 },
+  soupDumpling:{ name: 'Soup dumpling',        zh: '灌湯餃', jp: 'gun3 tong1 gaau2', m: '盅', price: 28, recipe: { shrimp: 1, pork: 1, broth: 1 }, cook: 8, fresh: 45, weight: 2, level: 10 },
 };
 export const MENU_ORDER = ['puer', 'harGow', 'siuMai', 'charSiuBao', 'cheungFun', 'turnipCake', 'chickenFeet', 'spareRibs', 'loMaiGai', 'springRoll', 'custardBun', 'eggTart', 'soupDumpling'];
 
