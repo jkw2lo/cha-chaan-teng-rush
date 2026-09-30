@@ -5,15 +5,15 @@
 
 // unit = cost of one serving's worth; pack = how many units a phone order brings
 export const INGREDIENTS = {
-  tea:       { name: 'Tea leaves',      zh: '茶葉',   unit: 1.5, pack: 10 },
-  milk:      { name: 'Evaporated milk', zh: '淡奶',   unit: 1.5, pack: 10 },
-  bun:       { name: 'Pineapple bun',   zh: '菠蘿包', unit: 3,   pack: 8 },
-  butter:    { name: 'Butter',          zh: '牛油',   unit: 1,   pack: 10 },
-  bread:     { name: 'Thick bread',     zh: '方包',   unit: 1.5, pack: 10 },
-  condensed: { name: 'Condensed milk',  zh: '煉奶',   unit: 1,   pack: 10 },
-  noodles:   { name: 'Instant noodles', zh: '公仔麵', unit: 2,   pack: 8 },
-  luncheon:  { name: 'Luncheon meat',   zh: '午餐肉', unit: 3,   pack: 8 },
-  egg:       { name: 'Fried egg',       zh: '煎蛋',   unit: 1.5, pack: 10 },
+  tea:       { name: 'Tea leaves',      zh: '茶葉',   short: 'Tea',      unit: 1.5, pack: 10 },
+  milk:      { name: 'Evaporated milk', zh: '淡奶',   short: 'Evap milk', unit: 1.5, pack: 10 },
+  bun:       { name: 'Pineapple bun',   zh: '菠蘿包', short: 'Bun',      unit: 3,   pack: 8 },
+  butter:    { name: 'Butter',          zh: '牛油',   short: 'Butter',   unit: 1,   pack: 10 },
+  bread:     { name: 'Thick bread',     zh: '方包',   short: 'Bread',    unit: 1.5, pack: 10 },
+  condensed: { name: 'Condensed milk',  zh: '煉奶',   short: 'Cond milk', unit: 1,   pack: 10 },
+  noodles:   { name: 'Instant noodles', zh: '公仔麵', short: 'Noodles',  unit: 2,   pack: 8 },
+  luncheon:  { name: 'Luncheon meat',   zh: '午餐肉', short: 'Luncheon', unit: 3,   pack: 8 },
+  egg:       { name: 'Fried egg',       zh: '煎蛋',   short: 'Egg',      unit: 1.5, pack: 10 },
 };
 export const BIN_ORDER = ['tea', 'milk', 'bun', 'butter', 'bread', 'condensed', 'noodles', 'luncheon', 'egg'];
 
@@ -21,10 +21,10 @@ export const BIN_ORDER = ['tea', 'milk', 'bun', 'butter', 'bread', 'condensed', 
 // cabinet) in the middle, and its own cup, plate or bowl at the bottom where the dish comes together.
 // Butter sits in two stations; both bins draw on the same stock.
 export const STATIONS = [
-  { id: 'drinks',  zh: '飲品', name: 'Drinks',  bins: ['tea', 'milk'],                 app: 'kettle',  vessel: 'cup' },
-  { id: 'buns',    zh: '麵包', name: 'Buns',    bins: ['butter'],                      cabinet: 'bun', vessel: 'plate' },
-  { id: 'toast',   zh: '多士', name: 'Toast',   bins: ['bread', 'butter', 'condensed'], app: 'toaster', vessel: 'plate' },
-  { id: 'noodles', zh: '粉麵', name: 'Noodles', bins: ['noodles', 'luncheon', 'egg'],   app: 'pot',     vessel: 'bowl' },
+  { id: 'drinks',  zh: '飲品', name: 'Drinks',  bins: ['tea', 'milk'],                 app: 'kettle',  vessel: 'cup',   color: '#1f5a8a' },
+  { id: 'buns',    zh: '麵包', name: 'Buns',    bins: ['butter'],                      cabinet: 'bun', vessel: 'plate', color: '#b87a14' },
+  { id: 'toast',   zh: '多士', name: 'Toast',   bins: ['bread', 'butter', 'condensed'], app: 'toaster', vessel: 'plate', color: '#b3261e' },
+  { id: 'noodles', zh: '粉麵', name: 'Noodles', bins: ['noodles', 'luncheon', 'egg'],   app: 'pot',     vessel: 'bowl',  color: '#2f6f4e' },
 ];
 // which station makes each dish
 export const RECIPE_STATION = { hotTea: 0, butterBun: 1, condensedToast: 2, noodleSpam: 3 };
@@ -35,7 +35,7 @@ export const START_STOCK = { tea: 7, milk: 7, bun: 5, butter: 8, bread: 5, conde
 export const PARTS = {
   brewTea:   { name: 'Pulled tea',      zh: '奶茶底' },
   toast:     { name: 'Toast',           zh: '多士' },
-  boiled:    { name: 'Boiled noodles',  zh: '麵' },
+  boiled:    { name: 'Noodles',         zh: '麵' },
 };
 
 // Timed appliances. `takes` is the one raw part that goes in; `gives` comes out if it's taken out

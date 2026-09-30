@@ -2,7 +2,7 @@
 // Top: stools and customers against the back wall. Middle: the counter. Bottom: the prep area.
 // Finished dishes use the cha chaan teng theme's icons (themes/cct/art.js), so they match the main game.
 import { TAU, HAN, iconCanvas } from '../js/art.js';
-import { INGREDIENTS, APPLIANCES, STATIONS, VESSEL_NAME, RECIPES, DAY, candidates, finished, missing, rawInput, vesselOf, partZh } from './recipes.js';
+import { INGREDIENTS, PARTS, APPLIANCES, STATIONS, VESSEL_NAME, RECIPES, RECIPE_STATION, DAY, candidates, finished, missing, rawInput, vesselOf, partZh } from './recipes.js';
 import { spotDish, takings } from './sim.js';
 import { phrase } from '../themes/cct/index.js';
 import { ENDLESS, opensOn } from './levels.js';
@@ -14,7 +14,7 @@ const DOOR = { x: 1156, y: 132, w: 104 }, CLOCK = { x: 1208, y: 76 };
 
 // ---------- layout: every clickable/droppable box ----------
 // Each station is a column of three steps: bins (top), appliance or bun cabinet (middle), plate (bottom).
-const COL_W = 268, COL_GAP = 10, BIN_Y = 386, BIN_H = 76, MID_Y = 474, MID_H = 160, SPOT_Y = 646, SPOT_H = 164;
+const COL_W = 268, COL_GAP = 10, HEAD_Y = 378, HEAD_H = 20, BIN_Y = 404, BIN_H = 70, MID_Y = 482, MID_H = 154, SPOT_Y = 646, SPOT_H = 164;
 const stations = STATIONS.map((st, i) => {
   const x = 16 + i * (COL_W + COL_GAP), n = st.bins.length, bw = Math.min(104, (COL_W - 16 - (n - 1) * 8) / n), x0 = x + (COL_W - (n * bw + (n - 1) * 8)) / 2;
   return { ...st, i, x, w: COL_W,
@@ -30,8 +30,8 @@ export const L = {
   spots: stations.map(s => s.spot),
   apps: Object.fromEntries(stations.filter(s => s.app).map(s => [s.app, s.mid])),
   cabinet: stations.find(s => s.cabinet).mid,
-  phone: { x: UX, y: BIN_Y, w: UW, h: 124 },
-  deliv: { x: UX, y: BIN_Y + 132, w: UW, h: 120 },
+  phone: { x: UX, y: BIN_Y, w: UW, h: 122 },
+  deliv: { x: UX, y: BIN_Y + 130, w: UW, h: MID_Y + MID_H - BIN_Y - 130 },
   trash: { x: UX, y: SPOT_Y, w: UW, h: SPOT_H },
 };
 export const inBox = (b, x, y) => x >= b.x && x <= b.x + b.w && y >= b.y && y <= b.y + b.h;
@@ -227,9 +227,9 @@ export function drawPerson(c, look, x, yBase, mood, t, eating, walking){
   const headY = yBase - 118 + bob;
   c.save();
   // body
-  c.fillStyle = o.shirt;
-  c.beginPath(); c.moveTo(x - 50, yBase); c.lineTo(x - 44, yBase - 70); c.quadraticCurveTo(x - 40, yBase - 88, x - 18, yBase - 92); c.lineTo(x + 18, yBase - 92);
-  c.quadraticCurveTo(x + 40, yBase - 88, x + 44, yBase - 70); c.lineTo(x + 50, yBase); c.closePath(); c.fill();
+  const bodyPath = () => { c.beginPath(); c.moveTo(x - 50, yBase); c.lineTo(x - 44, yBase - 70); c.quadraticCurveTo(x - 40, yBase - 88, x - 18, yBase - 92); c.lineTo(x + 18, yBase - 92);
+    c.quadraticCurveTo(x + 40, yBase - 88, x + 44, yBase - 70); c.lineTo(x + 50, yBase); c.closePath(); };
+  c.fillStyle = o.shirt; bodyPath(); c.fill();
   if (o.singlet){ c.fillStyle = skin; c.beginPath(); c.moveTo(x - 44, yBase - 70); c.quadraticCurveTo(x - 40, yBase - 88, x - 18, yBase - 92); c.lineTo(x - 26, yBase - 60); c.closePath(); c.fill();
     c.beginPath(); c.moveTo(x + 44, yBase - 70); c.quadraticCurveTo(x + 40, yBase - 88, x + 18, yBase - 92); c.lineTo(x + 26, yBase - 60); c.closePath(); c.fill(); }
   if (o.floral){ c.fillStyle = o.floral; const r2 = seeded(look + 3); for (let i = 0; i < 12; i++){ c.beginPath(); c.arc(x - 38 + r2() * 76, yBase - 80 + r2() * 76, 4, 0, TAU); c.fill(); } }
@@ -237,9 +237,24 @@ export function drawPerson(c, look, x, yBase, mood, t, eating, walking){
   if (o.blouse){ c.fillStyle = o.blouse; c.beginPath(); c.moveTo(x - 14, yBase - 92); c.lineTo(x + 14, yBase - 92); c.lineTo(x, yBase - 52); c.closePath(); c.fill(); }
   if (o.pinafore){ c.fillStyle = o.pinafore; c.fillRect(x - 34, yBase - 58, 68, 58); c.fillRect(x - 26, yBase - 92, 9, 36); c.fillRect(x + 17, yBase - 92, 9, 36); }
   if (o.tie){ c.fillStyle = o.tie; c.beginPath(); c.moveTo(x - 5, yBase - 90); c.lineTo(x + 5, yBase - 90); c.lineTo(x + 7, yBase - 40); c.lineTo(x, yBase - 32); c.lineTo(x - 7, yBase - 40); c.closePath(); c.fill(); }
-  // neck and head
+  // light from the fluorescent tubes up and to the left
+  c.save(); bodyPath(); c.clip();
+  const bl = c.createLinearGradient(x - 50, 0, x + 50, 0); bl.addColorStop(0, 'rgba(255,255,255,.14)'); bl.addColorStop(.5, 'rgba(255,255,255,0)'); bl.addColorStop(1, 'rgba(0,0,0,.16)');
+  c.fillStyle = bl; c.fillRect(x - 52, yBase - 95, 104, 96); c.restore();
+  // a collar on shirts
+  if (['office', 'student', 'casual', 'delivery'].includes(o.name)){
+    c.fillStyle = o.name === 'casual' || o.name === 'delivery' ? 'rgba(0,0,0,.14)' : '#ffffff';
+    c.beginPath(); c.moveTo(x - 16, yBase - 93); c.lineTo(x - 2, yBase - 80); c.lineTo(x - 12, yBase - 76); c.closePath(); c.fill();
+    c.beginPath(); c.moveTo(x + 16, yBase - 93); c.lineTo(x + 2, yBase - 80); c.lineTo(x + 12, yBase - 76); c.closePath(); c.fill();
+  }
+  // neck, ears and head
   c.fillStyle = skin; c.fillRect(x - 9, headY + 26, 18, 16);
-  c.beginPath(); c.ellipse(x, headY, 30, 34, 0, 0, TAU); c.fill();
+  c.fillStyle = 'rgba(80,40,20,.14)'; c.fillRect(x - 9, headY + 26, 18, 7);
+  c.fillStyle = skin; for (const ex of [-29, 29]){ c.beginPath(); c.ellipse(x + ex, headY + 4, 6, 9, 0, 0, TAU); c.fill(); }
+  c.fillStyle = 'rgba(120,60,40,.18)'; for (const ex of [-29, 29]){ c.beginPath(); c.ellipse(x + ex, headY + 4, 3, 5, 0, 0, TAU); c.fill(); }
+  c.fillStyle = skin; c.beginPath(); c.ellipse(x, headY, 30, 34, 0, 0, TAU); c.fill();
+  c.save(); c.beginPath(); c.ellipse(x, headY, 30, 34, 0, 0, TAU); c.clip();
+  c.fillStyle = 'rgba(90,40,20,.1)'; c.beginPath(); c.ellipse(x + 16, headY + 6, 22, 36, 0, 0, TAU); c.fill(); c.restore();
   // hair
   c.fillStyle = hair;
   if (o.name === 'auntie'){ for (let i = 0; i < 9; i++){ c.beginPath(); c.arc(x - 28 + i * 7, headY - 26 + Math.abs(i - 4) * 2.5, 11, 0, TAU); c.fill(); } }
@@ -250,7 +265,15 @@ export function drawPerson(c, look, x, yBase, mood, t, eating, walking){
   else { c.beginPath(); c.ellipse(x, headY - 14, 31, 24, 0, Math.PI * 1.05, -.05); c.fill(); }
   if (o.cap){ c.fillStyle = o.cap; c.beginPath(); c.ellipse(x, headY - 20, 31, 18, 0, Math.PI, 0); c.fill(); c.fillRect(x - 4, headY - 22, 44, 6); }
   if (o.name === 'worker'){ c.fillStyle = '#f2c14e'; c.beginPath(); c.ellipse(x, headY - 22, 33, 20, 0, Math.PI, 0); c.fill(); c.fillRect(x - 38, headY - 24, 76, 5); }
-  // face
+  // face: cheeks, brows and a nose, then the eyes and mouth
+  c.fillStyle = `rgba(230,110,100,${mood === 'happy' || eating ? .3 : .16})`;
+  for (const cx2 of [-17, 17]){ c.beginPath(); c.ellipse(x + cx2, headY + 13, 6, 4, 0, 0, TAU); c.fill(); }
+  if (mood !== 'angry'){
+    c.strokeStyle = hair; c.lineWidth = 2.2; c.lineCap = 'round';
+    const lift = mood === 'cross' ? 2 : 0;
+    c.beginPath(); c.moveTo(x - 15, headY - 7 + lift); c.lineTo(x - 6, headY - 8); c.moveTo(x + 15, headY - 7 + lift); c.lineTo(x + 6, headY - 8); c.stroke();
+  }
+  c.strokeStyle = 'rgba(120,60,40,.45)'; c.lineWidth = 1.6; c.beginPath(); c.moveTo(x + 1, headY + 3); c.quadraticCurveTo(x + 4, headY + 9, x, headY + 10); c.stroke();
   c.fillStyle = '#231d18';
   const eyeY = headY + 2;
   if (mood === 'angry'){ c.lineWidth = 2.5; c.strokeStyle = '#231d18'; c.beginPath(); c.moveTo(x - 16, eyeY - 9); c.lineTo(x - 5, eyeY - 5); c.moveTo(x + 16, eyeY - 9); c.lineTo(x + 5, eyeY - 5); c.stroke(); }
@@ -323,18 +346,50 @@ function drawRoom(c){
   c.fillStyle = '#c8372d'; c.fillRect(0, PREP_Y - 6, W, 6);
   // what lives on every cha chaan teng counter, between the stools
   condiments(c, 365, 'sugar'); condiments(c, 635, 'sauce'); condiments(c, 905, 'sugar'); condiments(c, 95, 'sauce');
-  // the prep area: brushed steel
-  const g = c.createLinearGradient(0, PREP_Y, 0, H); g.addColorStop(0, '#b9c1c6'); g.addColorStop(1, '#97a0a6');
-  c.fillStyle = g; c.fillRect(0, PREP_Y, W, H - PREP_Y);
-  c.fillStyle = 'rgba(255,255,255,.08)'; for (let y = PREP_Y + 4; y < H; y += 5) c.fillRect(0, y, W, 1);
-  // each station a tray of its own, with arrows down through its three steps
-  for (const st of stations){
-    c.fillStyle = 'rgba(255,255,255,.16)'; rr(c, st.x, PREP_Y + 8, st.w, H - PREP_Y - 12, 12); c.fill();
-    c.strokeStyle = 'rgba(40,50,56,.18)'; c.lineWidth = 1; rr(c, st.x + .5, PREP_Y + 8.5, st.w - 1, H - PREP_Y - 13, 12); c.stroke();
-    for (const y of [MID_Y - 5, SPOT_Y - 5]){
-      c.fillStyle = '#5d656c'; c.beginPath(); c.moveTo(st.x + st.w / 2 - 9, y - 4); c.lineTo(st.x + st.w / 2 + 9, y - 4); c.lineTo(st.x + st.w / 2, y + 5); c.closePath(); c.fill();
+  // our side of the counter: a white-tiled backsplash behind the ingredients, a steel bench below
+  const bs = MID_Y - 6;
+  c.fillStyle = '#eef0ec'; c.fillRect(0, PREP_Y, W, bs - PREP_Y);
+  c.strokeStyle = 'rgba(150,160,158,.45)'; c.lineWidth = 1;
+  for (let y = PREP_Y + 13, row = 0; y < bs; y += 13, row++){
+    c.beginPath(); c.moveTo(0, y + .5); c.lineTo(W, y + .5); c.stroke();
+    for (let x = (row % 2) * 13; x < W; x += 26){ c.beginPath(); c.moveTo(x + .5, y - 13); c.lineTo(x + .5, y); c.stroke(); }
+  }
+  const sh = c.createLinearGradient(0, PREP_Y, 0, PREP_Y + 14); sh.addColorStop(0, 'rgba(0,0,0,.28)'); sh.addColorStop(1, 'rgba(0,0,0,0)');
+  c.fillStyle = sh; c.fillRect(0, PREP_Y, W, 14);                       // the counter's shadow on the tiles
+  const g = c.createLinearGradient(0, bs, 0, H); g.addColorStop(0, '#c9d0d4'); g.addColorStop(.06, '#b3bbc0'); g.addColorStop(1, '#8f989e');
+  c.fillStyle = g; c.fillRect(0, bs, W, H - bs);
+  c.fillStyle = 'rgba(255,255,255,.07)'; for (let y = bs + 6; y < H; y += 4) c.fillRect(0, y, W, 1);
+  c.fillStyle = '#e8ecee'; c.fillRect(0, bs, W, 2);                    // the bench's front lip
+  // each station: an enamel sign on top, a faint lane down the bench, arrows through its three steps
+  for (const st of [...stations, { x: UX, w: UW, zh: '入貨', name: 'Supplies', color: '#5d4a3a' }]){
+    enamel(c, st.x + 4, HEAD_Y, st.w - 8, HEAD_H, st.color, st.zh, st.name);
+    if (!st.bins) continue;
+    c.fillStyle = 'rgba(255,255,255,.1)'; rr(c, st.x, bs + 4, st.w, H - bs - 8, 10); c.fill();
+    for (const y of [MID_Y - 3, SPOT_Y - 5]){
+      c.fillStyle = st.color; c.beginPath(); c.moveTo(st.x + st.w / 2 - 9, y - 4); c.lineTo(st.x + st.w / 2 + 9, y - 4); c.lineTo(st.x + st.w / 2, y + 5); c.closePath(); c.fill();
     }
   }
+  // fluorescent tubes along the top of the wall
+  for (const x of [230, 770]){
+    c.fillStyle = '#dfe4e2'; rr(c, x - 110, HUD + 2, 220, 9, 4); c.fill();
+    c.fillStyle = '#ffffff'; rr(c, x - 104, HUD + 4, 208, 4, 2); c.fill();
+  }
+  const glow = c.createLinearGradient(0, HUD, 0, 220); glow.addColorStop(0, 'rgba(255,255,240,.28)'); glow.addColorStop(1, 'rgba(255,255,240,0)');
+  c.fillStyle = glow; c.fillRect(0, HUD, W, 172);
+}
+// an enamel sign: coloured plate, white keyline, white lettering
+function enamel(c, x, y, w, h, col, zh, en){
+  c.fillStyle = 'rgba(0,0,0,.18)'; rr(c, x + 1, y + 2, w, h, 5); c.fill();
+  c.fillStyle = col; rr(c, x, y, w, h, 5); c.fill();
+  c.strokeStyle = 'rgba(255,255,255,.8)'; c.lineWidth = 1.2; rr(c, x + 2.5, y + 2.5, w - 5, h - 5, 3); c.stroke();
+  c.fillStyle = 'rgba(255,255,255,.14)'; rr(c, x + 3, y + 3, w - 6, (h - 6) / 2, 2); c.fill();
+  c.font = `900 13px ${HAN}`; const zw = c.measureText(zh).width;
+  c.font = `700 11px ${SANS}`; const ew = c.measureText(en.toUpperCase()).width;
+  const x0 = x + w / 2 - (zw + 8 + ew) / 2;
+  text(c, zh, x0, y + h / 2 + .5, `900 13px ${HAN}`, '#fff', 'left');
+  c.save(); c.font = `700 11px ${SANS}`; c.fillStyle = '#fff'; c.textAlign = 'left'; c.textBaseline = 'middle';
+  if ('letterSpacing' in c) c.letterSpacing = '1px';
+  c.fillText(en.toUpperCase(), x0 + zw + 8, y + h / 2 + .5); c.restore();
 }
 function condiments(c, x, kind){
   const base = COUNTER_Y + 22;
@@ -463,11 +518,11 @@ function timerBar(c, a, def, x, y, w, t){
 function appliance(c, key, a, box, t, run, pulling){
   const def = { ...APPLIANCES[key], ...run.timing[key] }, { x, y, w, h } = box, cx = x + w / 2;
   const ready = a.part && !a.ruined && a.t >= def.ready, late = ready && a.t >= def.burn - (def.burn - def.ready) * .35;
-  c.fillStyle = 'rgba(40,50,56,.14)'; rr(c, x, y, w, h, 10); c.fill();
+  stovePlate(c, box);
   if (ready){ c.strokeStyle = late && Math.sin(t * 14) > 0 ? '#ff5a4d' : '#2e9e5b'; c.lineWidth = 3; rr(c, x + 1.5, y + 1.5, w - 3, h - 3, 10); c.stroke(); }
   // the art is drawn in a 210-wide frame and scaled into the box
-  const s = .78;
-  c.save(); c.translate(cx - 105 * s, y + 26 - 36 * s); c.scale(s, s);
+  const s = .74;
+  c.save(); c.translate(cx - 105 * s, y + 24 - 36 * s); c.scale(s, s);
   applianceArt(c, key, a, def, t, pulling);
   c.restore();
   label(c, def.zh, def.name.split(' ')[0] === 'Kettle' ? 'Kettle' : def.name, x, y);
@@ -550,8 +605,8 @@ function applianceArt(c, key, a, def, t, pulling){
 // the bun cabinet: a glass case of pineapple buns; click it for one
 function cabinet(c, box, n, t){
   const { x, y, w, h } = box, cx = x + w / 2;
-  c.fillStyle = 'rgba(40,50,56,.14)'; rr(c, x, y, w, h, 10); c.fill();
-  const gx = cx - 90, gy = y + 32, gw = 180, gh = 82;
+  stovePlate(c, box);
+  const gx = cx - 90, gy = y + 30, gw = 180, gh = 72;
   c.fillStyle = '#8a5a3a'; rr(c, gx - 6, gy + gh - 4, gw + 12, 16, 4); c.fill();
   c.fillStyle = 'rgba(200,230,240,.35)'; rr(c, gx, gy, gw, gh, 6); c.fill();
   c.fillStyle = '#e8e2d0'; c.fillRect(gx + 6, gy + 40, gw - 12, 3);
@@ -586,14 +641,68 @@ function smoke(c, x, y, t){
   }
 }
 
-function spotHint(sp){
+// ---------- prep-area pieces ----------
+// a steel pan of an ingredient, heaped up to how much is left
+function pan(c, b, n, hover){
+  const x = b.x, y = b.y, w = b.w, h = 44;
+  const rim = c.createLinearGradient(0, y, 0, y + h); rim.addColorStop(0, hover ? '#f4f6f7' : '#e1e5e8'); rim.addColorStop(1, '#a9b1b6');
+  c.fillStyle = 'rgba(0,0,0,.18)'; rr(c, x + 1, y + 3, w, h, 7); c.fill();
+  c.fillStyle = rim; rr(c, x, y, w, h, 7); c.fill();
+  const well = c.createLinearGradient(0, y + 5, 0, y + h - 4); well.addColorStop(0, '#59626a'); well.addColorStop(1, '#8a939a');
+  c.fillStyle = well; rr(c, x + 5, y + 5, w - 10, h - 10, 4); c.fill();
+  const k = n <= 0 ? 0 : n <= 2 ? 1 : n <= 5 ? 2 : 3, cx = x + w / 2, cy = y + h / 2 + 1;
+  const spots = [[[0, 0]], [[-.2, 0], [.2, 0]], [[-.26, .05], [0, -.04], [.26, .05]]][k - 1] || [];
+  c.save(); rr(c, x + 5, y + 5, w - 10, h - 10, 4); c.clip();
+  for (const [dx, dy] of spots) drawIngredient(c, b.ing, cx + dx * (w - 10), cy + dy * h, 14);
+  c.restore();
+  if (!k) text(c, '冇貨', cx, cy, `900 13px ${HAN}`, '#ffb3a8');
+  c.fillStyle = 'rgba(255,255,255,.35)'; rr(c, x + 3, y + 2, w - 6, 2, 1); c.fill();
+}
+// the stainless plate an appliance (or the bun cabinet) stands on
+function stovePlate(c, b){
+  const g = c.createLinearGradient(0, b.y, 0, b.y + b.h); g.addColorStop(0, '#c3cacf'); g.addColorStop(1, '#9aa3a9');
+  c.fillStyle = 'rgba(0,0,0,.16)'; rr(c, b.x + 1, b.y + 3, b.w, b.h, 11); c.fill();
+  c.fillStyle = g; rr(c, b.x, b.y, b.w, b.h, 11); c.fill();
+  c.strokeStyle = 'rgba(255,255,255,.55)'; c.lineWidth = 1; rr(c, b.x + .5, b.y + .5, b.w - 1, b.h - 1, 11); c.stroke();
+  c.fillStyle = '#7d868d'; for (const [sx, sy] of [[8, 8], [b.w - 8, 8], [8, b.h - 8], [b.w - 8, b.h - 8]]){ c.beginPath(); c.arc(b.x + sx, b.y + sy, 2, 0, TAU); c.fill(); }
+}
+// a wooden chopping board for each station's plate
+const grainCache = new Map();
+function board(c, b, i){
+  c.fillStyle = 'rgba(0,0,0,.2)'; rr(c, b.x + 2, b.y + 4, b.w, b.h, 14); c.fill();
+  const g = c.createLinearGradient(b.x, b.y, b.x + b.w, b.y + b.h); g.addColorStop(0, '#dcb383'); g.addColorStop(1, '#c0915e');
+  c.fillStyle = g; rr(c, b.x, b.y, b.w, b.h, 14); c.fill();
+  c.save(); rr(c, b.x, b.y, b.w, b.h, 14); c.clip();
+  const rnd = seeded(97 + i * 13);
+  c.strokeStyle = 'rgba(120,72,30,.18)'; c.lineWidth = 1.2;
+  for (let k = 0; k < 14; k++){
+    const y0 = b.y + 6 + k * (b.h - 12) / 13 + rnd() * 4, amp = 2 + rnd() * 3, ph = rnd() * 6;
+    c.beginPath(); c.moveTo(b.x, y0);
+    for (let x = 0; x <= b.w; x += 12) c.lineTo(b.x + x, y0 + Math.sin(x / 30 + ph) * amp);
+    c.stroke();
+  }
+  c.fillStyle = 'rgba(120,72,30,.22)'; c.beginPath(); c.ellipse(b.x + 30 + rnd() * (b.w - 60), b.y + 30 + rnd() * 60, 7, 4, 0, 0, TAU); c.fill();   // a knot
+  c.restore();
+  c.strokeStyle = '#9a6a3a'; c.lineWidth = 2; rr(c, b.x + 1, b.y + 1, b.w - 2, b.h - 2, 13); c.stroke();
+  c.fillStyle = 'rgba(255,255,255,.18)'; rr(c, b.x + 6, b.y + 3, b.w - 12, 3, 2); c.fill();
+  c.fillStyle = '#8a5a30'; c.beginPath(); c.ellipse(b.x + b.w - 16, b.y + 14, 6, 4, 0, 0, TAU); c.fill();                            // the hanging hole
+}
+let vig = null;
+function vignette(c){
+  if (!vig){ vig = c.createRadialGradient(W / 2, H * .55, H * .45, W / 2, H * .55, H * 1.05); vig.addColorStop(0, 'rgba(0,0,0,0)'); vig.addColorStop(1, 'rgba(10,20,15,.28)'); }
+  return vig;
+}
+
+const partShort = p => (INGREDIENTS[p]?.short || PARTS[p]?.name || p).toLowerCase();
+// what a plate is heading towards; only the dishes its own station makes
+function spotHint(sp, i){
   if (!sp) return ['', ''];
   if (sp.mess) return [sp.mess, 'Drag to the bin'];
   if (rawInput(sp.parts)) return [`${partZh(sp.parts[0])} ${INGREDIENTS[sp.parts[0]].name}`, sp.parts[0] === 'tea' ? '→ into the kettle' : sp.parts[0] === 'bread' ? '→ into the toaster' : '→ into the pot'];
   const dish = finished(sp.parts);
   if (dish) return [`${RECIPES[dish].zh} ready`, 'Waiting for someone to order it'];
-  const cs = candidates(sp.parts);
-  if (cs.length === 1){ const m = missing(sp.parts, cs[0]); return [`→ ${RECIPES[cs[0]].zh}`, '+ ' + m.map(partZh).join(' + ')]; }
+  const cs = candidates(sp.parts).filter(r => RECIPE_STATION[r] === i);
+  if (cs.length === 1){ const m = missing(sp.parts, cs[0]); return [`→ ${RECIPES[cs[0]].zh}`, '+ ' + m.map(p => `${partZh(p)} ${partShort(p)}`).join(' + ')]; }
   return [cs.map(r => RECIPES[r].zh).join(' or '), ''];
 }
 
@@ -644,6 +753,9 @@ export function drawFrame(c, run, ui){
     const f = cu.patience / cu.max;
     const mood = cu.state === 'leave' ? (cu.happy ? 'happy' : 'angry') : cu.state === 'eat' ? 'happy' : f > .5 ? 'ok' : f > .25 ? 'cross' : 'angry';
     c.globalAlpha = Math.max(.1, Math.min(1, (DOOR.x + 74 - x) / 60));     // fading through the doorway
+    const sg = c.createRadialGradient(x + 16, COUNTER_Y - 70, 10, x + 16, COUNTER_Y - 70, 95);
+    sg.addColorStop(0, 'rgba(20,40,30,.2)'); sg.addColorStop(1, 'rgba(20,40,30,0)');
+    c.fillStyle = sg; c.fillRect(x - 80, COUNTER_Y - 170, 200, 170);         // a soft shadow on the wall behind them
     drawPerson(c, cu.look, x, COUNTER_Y + (moving ? Math.abs(Math.sin(t * 10)) * -4 : 0), mood, t, cu.state === 'eat', moving);
     c.globalAlpha = 1;
     if (cu.state === 'leave' && !cu.happy){ text(c, '唔等喇！', x, COUNTER_Y - 170, `900 18px ${HAN}`, '#9e1f19'); }
@@ -673,12 +785,23 @@ export function drawFrame(c, run, ui){
   // bins, on top of each station
   for (const b of L.bins){
     const n = run.stock[b.ing], coming = run.deliveries.find(d => d.ing === b.ing), cx = b.x + b.w / 2;
-    c.fillStyle = ui.hover === b ? '#f1f3f4' : '#dde1e4'; rr(c, b.x, b.y, b.w, b.h, 9); c.fill();
-    c.fillStyle = '#6f787e'; rr(c, b.x + 5, b.y + 5, b.w - 10, 42, 7); c.fill();
-    c.globalAlpha = n > 0 ? 1 : .3; drawIngredient(c, b.ing, cx, b.y + 26, 16); c.globalAlpha = 1;
-    text(c, INGREDIENTS[b.ing].zh, cx, b.y + 57, `900 13px ${HAN}`, '#2a221c');
-    text(c, INGREDIENTS[b.ing].name, cx, b.y + 70, `500 9.5px ${SANS}`, '#4a5458');
-    badge2(c, b.x + b.w - 10, b.y + 10, n);
+    pan(c, b, n, ui.hover === b);
+    // a strip of masking tape with the name on it
+    c.save(); c.translate(cx, b.y + 58); c.rotate(-.025);
+    c.fillStyle = 'rgba(0,0,0,.12)'; c.fillRect(-b.w / 2 + 3, -8, b.w - 6, 19);
+    c.fillStyle = '#f1e4ba'; c.beginPath(); c.moveTo(-b.w / 2 + 3, -9);
+    for (let k = 0; k <= 6; k++) c.lineTo(-b.w / 2 + 3 + k * (b.w - 6) / 6, -9 + (k % 2) * 1.2);
+    for (let k = 6; k >= 0; k--) c.lineTo(-b.w / 2 + 3 + k * (b.w - 6) / 6, 9 - (k % 2) * 1.2);
+    c.fill();
+    // Chinese name and a short English one, shrunk to fit the tape (the English goes if it still won't)
+    const room = b.w - 12, zh = INGREDIENTS[b.ing].zh, en = INGREDIENTS[b.ing].short;
+    c.font = `900 12px ${HAN}`; const zw = c.measureText(zh).width;
+    let ef = 9, ew; do { c.font = `700 ${ef}px ${SANS}`; ew = c.measureText(en).width; } while (zw + 4 + ew > room && --ef >= 7.5);
+    const showEn = zw + 4 + ew <= room, tw = showEn ? zw + 4 + ew : zw;
+    text(c, zh, -tw / 2, .5, `900 12px ${HAN}`, '#2a221c', 'left');
+    if (showEn) text(c, en, -tw / 2 + zw + 4, 1, `700 ${ef}px ${SANS}`, '#5a4a38', 'left');
+    c.restore();
+    badge2(c, b.x + b.w - 9, b.y + 9, n);
     if (coming){ c.fillStyle = coming.express ? '#e39b2d' : '#3f7fae'; rr(c, b.x + 3, b.y + 3, 40, 15, 7); c.fill(); text(c, `🚚${Math.ceil(coming.eta - run.t)}s`, b.x + 23, b.y + 11, `700 9.5px ${SANS}`, '#fff'); }
   }
   // the middle step: appliances and the bun cabinet
@@ -690,8 +813,7 @@ export function drawFrame(c, run, ui){
   // the bottom step: each station's own cup, plate or bowl
   run.spots.forEach((sp, i) => {
     const b = L.spots[i], cx = b.x + b.w / 2, st = stations[i];
-    c.fillStyle = '#c9a57a'; rr(c, b.x, b.y, b.w, b.h, 10); c.fill();
-    c.fillStyle = 'rgba(255,255,255,.12)'; for (let k = 0; k < 6; k++) c.fillRect(b.x + 6, b.y + 12 + k * 26, b.w - 12, 2);
+    board(c, b, i);
     const dragging = ui.drag && ui.drag.spot === i && ui.drag.moved;
     if (sp && !dragging){ drawBag(c, sp.parts, sp.mess, cx, b.y + 62, 42); if (!sp.mess && sp.parts.includes('brewTea')) steam(c, cx, b.y + 32, t + i, false); }
     if (!sp){
@@ -700,7 +822,7 @@ export function drawFrame(c, run, ui){
       const [zh, en] = VESSEL_NAME[st.vessel];
       text(c, `${zh} ${en}: click ingredients above`, cx, b.y + b.h - 18, `700 11.5px ${SANS}`, 'rgba(42,34,28,.65)');
     }
-    const [h1, h2] = dragging ? ['', ''] : spotHint(sp);
+    const [h1, h2] = dragging ? ['', ''] : spotHint(sp, i);
     if (h1){ c.fillStyle = sp.mess ? 'rgba(158,31,25,.9)' : spotDish(sp) ? 'rgba(29,107,63,.92)' : 'rgba(21,48,42,.82)'; rr(c, b.x + 8, b.y + b.h - 44, b.w - 16, 38, 7); c.fill();
       text(c, h1, cx, b.y + b.h - 33, `900 13px ${HAN}`, '#fff'); if (h2) text(c, h2, cx, b.y + b.h - 16, `700 11px ${SANS}`, '#f2d27a'); }
   });
@@ -771,5 +893,6 @@ export function drawFrame(c, run, ui){
     if (ui.drag.bag) drawBag(c, ui.drag.bag.parts, ui.drag.bag.mess, ui.drag.x, ui.drag.y, 40);
     c.globalAlpha = 1;
   }
+  c.fillStyle = vignette(c); c.fillRect(0, HUD, W, H - HUD);
   if (ui.paused){ c.fillStyle = 'rgba(12,16,36,.55)'; c.fillRect(0, 0, W, H); text(c, 'Paused', W / 2, H / 2 - 10, `700 48px ${SLAB}`, '#fff'); text(c, 'Space or the Pause button to carry on', W / 2, H / 2 + 30, `500 16px ${SANS}`, '#e0e6e2'); }
 }
