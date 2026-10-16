@@ -9,14 +9,14 @@
   "problem": "Hong Kong menus make more sense once you've cooked them.",
   "stats": [
     { "value": "3", "label": "restaurants: diner, dim sum and a counter" },
-    { "value": "10", "label": "levels, each opening a new dish" },
+    { "value": "10", "label": "levels, with a new dish at each one after 1" },
     { "value": "12", "label": "minutes in a working day" }
   ],
 
   "features": [
     { "title": "Dim Sum Rush", "text": "A Sunday-morning 酒樓, where finished baskets ride a trolley that holds eight.",
       "details": ["Waiters push the trolley to the tables", "A full trolley sheds its oldest unwanted basket"],
-      "screen": { "src": "dimsum.png", "alt": "Dim Sum Rush: a red and gold dining room, steamer baskets on the counters and tickets for har gow and siu mai" } },
+      "screen": { "src": "dimsum.jpg", "alt": "Dim Sum Rush: a red and gold dining room, steamer baskets on the counters and tickets for har gow and siu mai" } },
     { "title": "Counter Rush", "text": "One counter: drinks, buns, toast and noodles, served against the clock.",
       "details": ["Six days, then 搏命 Do or Die, an endless shift", "A difficulty slider from relaxed to frantic"],
       "screen": { "src": "counter.png", "alt": "Counter Rush's day picker: six days from opening day to a rainy day crowd, Do or Die, and a difficulty slider" } },
@@ -27,7 +27,7 @@
   ],
 
   "screens": [
-    { "src": "desktop.png", "alt": "Cha Chaan Teng Rush mid-morning: an isometric diner with customers ordering pineapple buns and milk tea, tickets on the rail and stock levels", "caption": "Day 1, just after opening" }
+    { "src": "desktop.jpg", "alt": "Cha Chaan Teng Rush mid-morning: an isometric diner with customers ordering pineapple buns and milk tea, tickets on the rail and stock levels", "caption": "Day 1, just after opening" }
   ],
 
   "facts": {

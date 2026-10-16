@@ -2,7 +2,7 @@
   "url": "https://jkw2lo.github.io/cha-chaan-teng-rush/",
   "shots": [
     {
-      "file": "desktop.png",
+      "file": "desktop.jpg",
       "url": "https://jkw2lo.github.io/cha-chaan-teng-rush/cct/?debug",
       "settle": 3000,
       "steps": [
@@ -19,7 +19,7 @@
       ]
     },
     {
-      "file": "dimsum.png",
+      "file": "dimsum.jpg",
       "url": "https://jkw2lo.github.io/cha-chaan-teng-rush/dimsum/?debug",
       "settle": 3000,
       "steps": [
