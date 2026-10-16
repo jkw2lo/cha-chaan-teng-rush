@@ -1,0 +1,47 @@
+{
+  "url": "https://jkw2lo.github.io/cha-chaan-teng-rush/",
+  "shots": [
+    {
+      "file": "desktop.png",
+      "url": "https://jkw2lo.github.io/cha-chaan-teng-rush/cct/?debug",
+      "settle": 3000,
+      "steps": [
+        "eval:{ const b = [...document.querySelectorAll('button')].find(b => b.offsetParent && b.textContent.trim().replace(/\\s+/g,' ').startsWith(\"Open the shop\")); if (b) b.click(); }",
+        "wait:1200",
+        "eval:{ const b = [...document.querySelectorAll('button')].find(b => b.offsetParent && b.textContent.trim().replace(/\\s+/g,' ').startsWith(\"Skip tour\")); if (b) b.click(); }",
+        "wait:300",
+        "eval:{ const b = [...document.querySelectorAll('button')].find(b => b.offsetParent && b.textContent.trim().replace(/\\s+/g,' ').startsWith(\"Open for day\")); if (b) b.click(); }",
+        "wait:1500",
+        "eval:cct.ff(40)",
+        "wait:2500",
+        "eval:{ const b = [...document.querySelectorAll('button')].find(b => b.offsetParent && b.textContent.trim().replace(/\\s+/g,' ').startsWith(\"Pause\")); if (b) b.click(); }",
+        "wait:300"
+      ]
+    },
+    {
+      "file": "dimsum.png",
+      "url": "https://jkw2lo.github.io/cha-chaan-teng-rush/dimsum/?debug",
+      "settle": 3000,
+      "steps": [
+        "eval:{ const b = [...document.querySelectorAll('button')].find(b => b.offsetParent && b.textContent.trim().replace(/\\s+/g,' ').startsWith(\"Open the shop\")); if (b) b.click(); }",
+        "wait:1200",
+        "eval:{ const b = [...document.querySelectorAll('button')].find(b => b.offsetParent && b.textContent.trim().replace(/\\s+/g,' ').startsWith(\"Skip tour\")); if (b) b.click(); }",
+        "wait:300",
+        "eval:{ const b = [...document.querySelectorAll('button')].find(b => b.offsetParent && b.textContent.trim().replace(/\\s+/g,' ').startsWith(\"Open for day\")); if (b) b.click(); }",
+        "wait:1500",
+        "eval:(window.cct || window.ds || window.dimsum).ff(40)",
+        "wait:2500",
+        "eval:{ const b = [...document.querySelectorAll('button')].find(b => b.offsetParent && b.textContent.trim().replace(/\\s+/g,' ').startsWith(\"Pause\")); if (b) b.click(); }",
+        "wait:300"
+      ]
+    },
+    {
+      "file": "counter.png",
+      "url": "https://jkw2lo.github.io/cha-chaan-teng-rush/counter/?debug",
+      "settle": 3000,
+      "steps": [
+        "wait:1000"
+      ]
+    }
+  ]
+}
